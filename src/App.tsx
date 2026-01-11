@@ -6,7 +6,7 @@ type Suit = 'hearts' | 'diamonds' | 'clubs' | 'spades';
 type Rank = '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9' | '10' | 'J' | 'Q' | 'K' | 'A';
 type Street = 'preflop' | 'flop' | 'turn' | 'river' | 'showdown';
 type ActionType = 'fold' | 'check' | 'call' | 'raise' | 'all-in';
-type Position = 'BTN' | 'SB' | 'BB' | 'UTG' | 'MP' | 'CO' | 'HJ';
+type Position = 'BTN' | 'SB' | 'BB' | 'UTG' | 'UTG+1' | 'MP' | 'HJ' | 'CO';
 
 interface Card {
   rank: Rank;
@@ -132,10 +132,17 @@ const evaluateBoardStrength = (holeCards: Card[], communityCards: Card[]): numbe
 const getPositionStrategy = (position: Position, street: Street): string => {
   const strategies: Record<Position, Record<Street, string>> = {
     'UTG': {
-      'preflop': 'UTG (Under The Gun): Play TIGHT. Only open with premium hands (AA-TT, AK, AQ). You act first with 6 players behind - discipline is key.',
+      'preflop': 'UTG (Under The Gun): Play TIGHT. Only open with premium hands (AA-TT, AK, AQ). You act first with 7 players behind - discipline is key.',
       'flop': 'UTG: Continuation bet with strong hands. Check-fold weak hands. Position disadvantage means you need stronger holdings.',
       'turn': 'UTG: Narrow your range. Only continue with made hands or strong draws. Pot control with medium strength.',
       'river': 'UTG: Value bet strong hands, check-call medium hands. Avoid bluffing from early position.',
+      'showdown': 'Hand complete. Review your decisions against optimal play.'
+    },
+    'UTG+1': {
+      'preflop': 'UTG+1: Still early position. Play tight but slightly wider than UTG. Add 99, AJs to your range.',
+      'flop': 'UTG+1: Similar to UTG. C-bet strong hands, check weak ones. Still at positional disadvantage.',
+      'turn': 'UTG+1: Narrow your range. Only continue with made hands or strong draws.',
+      'river': 'UTG+1: Value bet strong hands. Avoid bluffing without strong reads.',
       'showdown': 'Hand complete. Review your decisions against optimal play.'
     },
     'MP': {
@@ -609,6 +616,7 @@ const ActionLog: React.FC<{
     { abbr: 'SB', name: 'Small Blind', color: 'text-red-400', desc: 'Worst position. Posts half blind, acts first postflop. Play tight.' },
     { abbr: 'BB', name: 'Big Blind', color: 'text-red-300', desc: 'Posts full blind. Gets to act last preflop. Defend vs steals.' },
     { abbr: 'UTG', name: 'Under the Gun', color: 'text-orange-400', desc: 'First to act preflop. Play very tight (top 10-15% hands).' },
+    { abbr: 'UTG+1', name: 'UTG+1', color: 'text-orange-300', desc: 'Second to act preflop. Still very early, play tight (top 12-18%).' },
     { abbr: 'MP', name: 'Middle Position', color: 'text-blue-400', desc: 'Middle ground. Slightly wider than UTG (top 15-20%).' },
     { abbr: 'HJ', name: 'Hijack', color: 'text-purple-400', desc: 'Two before button. Can start opening wider (top 20-25%).' },
     { abbr: 'CO', name: 'Cutoff', color: 'text-green-400', desc: 'One before button. Very strong position (top 25-30%).' },
@@ -722,9 +730,9 @@ const ActionLog: React.FC<{
       {/* Position Chart */}
       {showPositionChart && (
         <div className="border-t border-cyan-700 p-3 bg-cyan-900/20 max-h-64 overflow-y-auto">
-          <div className="text-cyan-400 text-xs font-bold mb-2">📊 Position Reference (7-handed)</div>
+          <div className="text-cyan-400 text-xs font-bold mb-2">📊 Position Reference (8-handed)</div>
           <div className="text-[10px] text-gray-400 mb-3">
-            Order of action preflop: UTG → MP → HJ → CO → BTN → SB → BB
+            Order of action preflop: UTG → UTG+1 → MP → HJ → CO → BTN → SB → BB
           </div>
           <div className="space-y-2">
             {positionData.map((pos) => (
@@ -782,26 +790,26 @@ const PokerTable: React.FC = () => {
   const smallBlind = currentBlinds.sb;
   const bigBlind = currentBlinds.bb;
 
-  const positionOrder: Position[] = ['BTN', 'SB', 'BB', 'UTG', 'MP', 'CO', 'HJ'];
+  const positionOrder: Position[] = ['BTN', 'SB', 'BB', 'UTG', 'UTG+1', 'MP', 'HJ', 'CO'];
 
   const initializeGame = useCallback((existingChips?: number[], btnIndex?: number) => {
     const deck = createDeck();
-    const dealerIdx = btnIndex ?? Math.floor(Math.random() * 7);
+    const dealerIdx = btnIndex ?? Math.floor(Math.random() * 8);
 
     // Position names relative to dealer
     const getPositionName = (seatIndex: number): Position => {
-      const offset = (seatIndex - dealerIdx + 7) % 7;
+      const offset = (seatIndex - dealerIdx + 8) % 8;
       return positionOrder[offset];
     };
 
-    const baseChips = existingChips || [5000, 5000, 5000, 5000, 5000, 5000, 5000];
+    const baseChips = existingChips || [5000, 5000, 5000, 5000, 5000, 5000, 5000, 5000];
 
     // Find first-to-act (UTG or first non-eliminated player after BB)
     // Position order from dealer: BTN(0), SB(1), BB(2), UTG(3), MP(4), CO(5), HJ(6)
     // Preflop action starts at UTG (offset 3 from dealer)
     let firstToActIdx = -1;
     for (let i = 0; i < 7; i++) {
-      const seatIdx = (dealerIdx + 3 + i) % 7; // Start at UTG position
+      const seatIdx = (dealerIdx + 3 + i) % 8; // Start at UTG position
       if (baseChips[seatIdx] > 0) {
         firstToActIdx = seatIdx;
         break;
@@ -906,10 +914,10 @@ const PokerTable: React.FC = () => {
     }
 
     // Rotate dealer button
-    let newDealerIdx = (dealerIndex + 1) % 7;
+    let newDealerIdx = (dealerIndex + 1) % 8;
     // Skip eliminated players
     while (chipCounts[newDealerIdx] <= 0) {
-      newDealerIdx = (newDealerIdx + 1) % 7;
+      newDealerIdx = (newDealerIdx + 1) % 8;
     }
 
     const nextHandNumber = handNumber + 1;
@@ -1285,7 +1293,7 @@ const PokerTable: React.FC = () => {
 
       // Position-based aggression factor
       const positionFactor: Record<Position, number> = {
-        'BTN': 1.3, 'CO': 1.2, 'HJ': 1.1, 'MP': 1.0, 'UTG': 0.85, 'SB': 0.9, 'BB': 1.0
+        'BTN': 1.3, 'CO': 1.2, 'HJ': 1.1, 'MP': 1.0, 'UTG+1': 0.9, 'UTG': 0.85, 'SB': 0.9, 'BB': 1.0
       };
       const aggression = positionFactor[currentActive.positionName] || 1;
 
@@ -1473,17 +1481,20 @@ const PokerTable: React.FC = () => {
   };
 
   const getPositionStyle = (posIndex: number): React.CSSProperties => {
+    // Positions arranged in oval around table (clockwise from bottom)
+    // 8 players evenly spread around the oval
     const positions = [
-      { bottom: '-8%', left: '50%', transform: 'translateX(-50%)' }, // User - moved lower
-      { bottom: '10%', left: '8%' },  // SB
-      { top: '45%', left: '0%' },     // BB
-      { top: '5%', left: '15%' },     // UTG
-      { top: '-5%', left: '50%', transform: 'translateX(-50%)' }, // MP - moved higher
-      { top: '5%', right: '15%' },    // CO
-      { top: '45%', right: '0%' },    // HJ
+      { bottom: '-5%', left: '50%', transform: 'translateX(-50%)' },  // Seat 0 - bottom center (User)
+      { bottom: '5%', left: '12%' },                                   // Seat 1 - lower left
+      { top: '40%', left: '-3%', transform: 'translateY(-50%)' },      // Seat 2 - middle left
+      { top: '5%', left: '12%' },                                      // Seat 3 - upper left
+      { top: '-5%', left: '50%', transform: 'translateX(-50%)' },      // Seat 4 - top center
+      { top: '5%', right: '12%' },                                     // Seat 5 - upper right
+      { top: '40%', right: '-3%', transform: 'translateY(-50%)' },     // Seat 6 - middle right
+      { bottom: '5%', right: '12%' },                                  // Seat 7 - lower right
     ];
     return positions[posIndex] || {};
-  };
+  };;;;
 
   const callAmount = userPlayer ? gameState.currentBet - userPlayer.currentBet : 0;
   const canCheck = callAmount === 0;
