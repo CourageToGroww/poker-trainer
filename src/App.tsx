@@ -463,6 +463,383 @@ const dealCards = (deck: Card[], count: number): Card[] => {
   return deck.splice(0, count);
 };
 
+// --- Tutorial System ---
+
+interface TutorialLesson {
+  id: string;
+  title: string;
+  category: string;
+  content: TutorialSection[];
+}
+
+interface TutorialSection {
+  type: 'text' | 'cards' | 'table' | 'quiz' | 'tip' | 'warning' | 'example';
+  title?: string;
+  content: string;
+  cards?: Card[];
+  tableData?: { headers: string[]; rows: string[][] };
+  quizOptions?: { text: string; correct: boolean; explanation: string }[];
+}
+
+const TUTORIAL_LESSONS: TutorialLesson[] = [
+  {
+    id: 'intro',
+    title: 'Welcome to Texas Hold\'em',
+    category: 'Basics',
+    content: [
+      { type: 'text', content: 'Texas Hold\'em is the most popular form of poker in the world. Each player receives 2 private cards (hole cards), and 5 community cards are dealt face-up on the board. Your goal is to make the best 5-card hand using any combination of your hole cards and the community cards.' },
+      { type: 'tip', title: 'Key Concept', content: 'You can use both, one, or none of your hole cards combined with the community cards to make your best hand.' },
+      { type: 'text', title: 'The Four Betting Rounds', content: '1. **Preflop** - After receiving your 2 hole cards\n2. **Flop** - After the first 3 community cards are dealt\n3. **Turn** - After the 4th community card\n4. **River** - After the 5th and final community card' },
+      { type: 'text', title: 'Winning the Pot', content: 'You can win by either:\n• Having the best hand at showdown\n• Making all other players fold before showdown' }
+    ]
+  },
+  {
+    id: 'hand-rankings',
+    title: 'Hand Rankings',
+    category: 'Basics',
+    content: [
+      { type: 'text', content: 'Poker hands are ranked from highest to lowest. Memorizing these is essential!' },
+      { type: 'table', title: 'Hand Rankings (Highest to Lowest)', content: '', tableData: { headers: ['Rank', 'Hand', 'Example', 'Description'], rows: [['1', 'Royal Flush', 'A♠ K♠ Q♠ J♠ T♠', 'A-K-Q-J-T all same suit'], ['2', 'Straight Flush', '9♥ 8♥ 7♥ 6♥ 5♥', '5 consecutive cards, same suit'], ['3', 'Four of a Kind', 'K♠ K♥ K♦ K♣ 7♠', '4 cards of same rank'], ['4', 'Full House', 'Q♠ Q♥ Q♦ 8♣ 8♠', '3 of a kind + a pair'], ['5', 'Flush', 'A♦ J♦ 8♦ 6♦ 2♦', '5 cards same suit, any order'], ['6', 'Straight', 'T♠ 9♥ 8♦ 7♣ 6♠', '5 consecutive cards, any suit'], ['7', 'Three of a Kind', '7♠ 7♥ 7♦ K♣ 2♠', '3 cards of same rank'], ['8', 'Two Pair', 'J♠ J♥ 5♦ 5♣ A♠', '2 different pairs'], ['9', 'One Pair', '9♠ 9♥ A♦ K♣ 4♠', '2 cards of same rank'], ['10', 'High Card', 'A♠ J♥ 8♦ 5♣ 2♠', 'No made hand, highest card plays']] } },
+      { type: 'tip', title: 'Memory Trick', content: 'Royal Flush is the rarest hand - you\'ll see it roughly once every 650,000 hands. A pair is the most common made hand, appearing about 42% of the time.' },
+      { type: 'warning', title: 'Common Mistake', content: 'A flush beats a straight! Many beginners get this wrong. Remember: it\'s harder to get 5 cards of the same suit than 5 consecutive cards.' }
+    ]
+  },
+  {
+    id: 'positions',
+    title: 'Table Positions',
+    category: 'Basics',
+    content: [
+      { type: 'text', content: 'Position is one of the most important concepts in poker. Where you sit relative to the dealer button determines when you act - and acting last is a HUGE advantage.' },
+      { type: 'table', title: 'The 8 Positions', content: '', tableData: { headers: ['Position', 'Full Name', 'Type', 'Advantage'], rows: [['BTN', 'Button (Dealer)', 'Late', '★★★★★ Best position - always acts last postflop'], ['SB', 'Small Blind', 'Blind', '★☆☆☆☆ Worst - posts half blind, acts first postflop'], ['BB', 'Big Blind', 'Blind', '★★☆☆☆ Posts full blind, but acts last preflop'], ['UTG', 'Under the Gun', 'Early', '★★☆☆☆ First to act preflop - very tough spot'], ['UTG+1', 'UTG+1', 'Early', '★★☆☆☆ Second to act - still early position'], ['MP', 'Middle Position', 'Middle', '★★★☆☆ Middle ground - moderate advantage'], ['HJ', 'Hijack', 'Late', '★★★★☆ Two before button - good stealing position'], ['CO', 'Cutoff', 'Late', '★★★★★ One before button - excellent position']] } },
+      { type: 'text', title: 'Why Position Matters', content: '**Information Advantage**: When you act last, you see what everyone else does before making your decision.\n\n**Pot Control**: You can check behind to keep pots small with marginal hands.\n\n**Bluffing**: Easier to bluff when you see weakness (checks) from opponents.\n\n**Value**: You can bet for value more accurately knowing the action.' },
+      { type: 'tip', title: 'Golden Rule', content: 'Play TIGHT in early position (only premium hands) and LOOSE in late position (wider range of hands). The button can profitably play ~40% of hands, while UTG should only play ~12%.' }
+    ]
+  },
+  {
+    id: 'actions',
+    title: 'Betting Actions',
+    category: 'Basics',
+    content: [
+      { type: 'table', title: 'Your Options', content: '', tableData: { headers: ['Action', 'When Available', 'What It Means'], rows: [['Fold', 'Always', 'Surrender your hand and any chips you\'ve put in'], ['Check', 'No bet to call', 'Pass the action without betting (stay in hand for free)'], ['Call', 'Facing a bet', 'Match the current bet to stay in the hand'], ['Raise', 'Usually always', 'Increase the bet - others must call or re-raise'], ['All-In', 'Always', 'Bet all your remaining chips']] } },
+      { type: 'text', title: 'Minimum Raise Rules', content: 'The minimum raise must be at least the size of the previous raise. Example:\n• If the big blind is $50 and someone raises to $150 (a $100 raise)\n• The minimum re-raise is $250 ($150 + $100)' },
+      { type: 'warning', title: 'String Betting', content: 'In live poker, you must announce "raise" or put all chips in at once. Saying "I call... and raise" is called a string bet and is not allowed!' }
+    ]
+  },
+  {
+    id: 'terms-betting',
+    title: 'Betting Terminology',
+    category: 'Terminology',
+    content: [
+      { type: 'table', title: 'Essential Betting Terms', content: '', tableData: { headers: ['Term', 'Definition', 'Example'], rows: [['C-Bet', 'Continuation Bet - betting the flop after raising preflop', 'You raise with AK, flop is 7-4-2, you bet anyway'], ['3-Bet', 'Re-raising a raise (the 3rd bet)', 'Someone raises, you re-raise - that\'s a 3-bet'], ['4-Bet', 'Re-raising a 3-bet', 'They raise, you 3-bet, they 4-bet'], ['Donk Bet', 'Betting into the preflop raiser out of position', 'You called preflop, then lead the flop betting'], ['Value Bet', 'Betting with a strong hand to get called by worse', 'You have top pair and bet for value'], ['Bluff', 'Betting with a weak hand to make better hands fold', 'You have nothing but bet to represent strength'], ['Semi-Bluff', 'Bluffing with a draw that could improve', 'Betting a flush draw - you might win now or hit later'], ['Check-Raise', 'Checking then raising when someone bets', 'Trapping with a strong hand'], ['Overbet', 'Betting more than the pot size', 'Pot is $100, you bet $150+'], ['Block Bet', 'Small bet to prevent a larger bet', 'Betting 25% pot to control the price']] } },
+      { type: 'example', title: 'C-Bet in Action', content: 'You raise preflop with A♠K♠. The flop comes 7♦4♣2♥ - you completely missed! But you bet anyway (a c-bet) because:\n1. You showed strength preflop\n2. This flop likely missed your opponent too\n3. Many hands will fold to your continued aggression' }
+    ]
+  },
+  {
+    id: 'terms-math',
+    title: 'Poker Math Terms',
+    category: 'Terminology',
+    content: [
+      { type: 'table', title: 'Math Terminology', content: '', tableData: { headers: ['Term', 'Definition', 'Why It Matters'], rows: [['Pot Odds', 'Ratio of call amount to pot size', 'Determines if a call is profitable'], ['Equity', 'Your % chance to win the hand', 'AA vs KK = ~80% equity for AA'], ['Outs', 'Cards that improve your hand', 'Flush draw = 9 outs'], ['Implied Odds', 'Pot odds + future betting', 'If you hit, you\'ll win more'], ['Reverse Implied', 'Risk of losing more when you hit', 'Making 2nd best hand'], ['EV (Expected Value)', 'Long-term average profit/loss', '+EV = profitable, -EV = losing'], ['SPR', 'Stack-to-Pot Ratio', 'Low SPR = commit with top pair'], ['Fold Equity', 'Chance opponent folds to your bet', 'Makes bluffs profitable']] } },
+      { type: 'text', title: 'The Rule of 2 and 4', content: 'Quick way to calculate your equity with a draw:\n\n**Flop to River**: Multiply outs × 4\n**Turn to River**: Multiply outs × 2\n\nExample: You have a flush draw (9 outs)\n• On the flop: 9 × 4 = ~36% to hit\n• On the turn: 9 × 2 = ~18% to hit' },
+      { type: 'example', title: 'Pot Odds Calculation', content: 'The pot is $100. Your opponent bets $50. You need to call $50 to win $150.\n\n**Pot Odds** = $50 / ($100 + $50 + $50) = $50 / $200 = 25%\n\nYou need at least 25% equity to call profitably. With a flush draw (~36%), this is an easy call!' }
+    ]
+  },
+  {
+    id: 'terms-players',
+    title: 'Player Types & Stats',
+    category: 'Terminology',
+    content: [
+      { type: 'table', title: 'Player Statistics', content: '', tableData: { headers: ['Stat', 'Full Name', 'What It Shows', 'Good Range'], rows: [['VPIP', 'Voluntarily Put $ In Pot', 'How loose/tight they play', '18-25% is solid'], ['PFR', 'Preflop Raise %', 'How aggressive preflop', '15-20% is good'], ['AF', 'Aggression Factor', 'Bets+Raises / Calls', '2-3 is balanced'], ['3-Bet %', 'Re-raise frequency', 'How often they 3-bet', '6-10% is normal'], ['Fold to C-Bet', 'C-bet fold frequency', 'How often they give up', '40-50% is normal']] } },
+      { type: 'table', title: 'Player Types', content: '', tableData: { headers: ['Type', 'VPIP', 'AF', 'Description'], rows: [['TAG', 'Low (18-24%)', 'High (2-3)', 'Tight-Aggressive: The winning style'], ['LAG', 'High (28-35%)', 'High (3+)', 'Loose-Aggressive: Skilled & dangerous'], ['Nit', 'Very Low (<15%)', 'Low', 'Only plays premium hands'], ['Fish', 'Very High (40%+)', 'Low', 'Plays too many hands passively'], ['Maniac', 'Very High', 'Very High', 'Bets and raises everything']] } },
+      { type: 'tip', title: 'Exploiting Player Types', content: '• **vs Nits**: Steal their blinds relentlessly, fold when they bet big\n• **vs Fish**: Value bet thinner, don\'t bluff (they call everything)\n• **vs LAGs**: Trap with strong hands, call down lighter\n• **vs Maniacs**: Let them hang themselves, wait for hands' }
+    ]
+  },
+  {
+    id: 'board-texture',
+    title: 'Reading Board Texture',
+    category: 'Strategy',
+    content: [
+      { type: 'text', content: 'Board texture refers to how the community cards interact with possible hands. Understanding this is crucial for making good decisions.' },
+      { type: 'table', title: 'Board Types', content: '', tableData: { headers: ['Type', 'Example', 'Characteristics', 'Strategy'], rows: [['Dry', 'K♠ 7♦ 2♣', 'No draws, disconnected', 'C-bet often, bluff more'], ['Wet', 'J♥ T♥ 8♠', 'Many draws possible', 'Bet for value/protection'], ['Paired', 'Q♠ Q♦ 5♣', 'Pair on board', 'Full houses possible, polarize'], ['Monotone', 'A♦ 8♦ 3♦', 'Three of same suit', 'Flush already possible!'], ['Rainbow', 'K♠ 9♥ 4♦', 'All different suits', 'No flush draws']] } },
+      { type: 'example', title: 'Wet vs Dry Board', content: '**Dry Board (K♠ 7♦ 2♣)**:\nFew draws exist. If you have K-Q, you likely have the best hand. C-bet freely as bluffs work well.\n\n**Wet Board (J♥ T♥ 8♠)**:\nStraight draws (Q9, 97), flush draws (any two hearts), combo draws everywhere. Bet larger for protection. Don\'t bluff much - too many draws will call.' }
+    ]
+  },
+  {
+    id: 'pot-odds',
+    title: 'Pot Odds Mastery',
+    category: 'Strategy',
+    content: [
+      { type: 'text', content: 'Pot odds compare the size of the bet you must call to the total pot. If your equity exceeds your pot odds, calling is profitable long-term.' },
+      { type: 'table', title: 'Common Pot Odds', content: '', tableData: { headers: ['Bet Size', 'Pot Odds', 'Equity Needed'], rows: [['25% pot', '16.7%', 'Any draw'], ['33% pot', '20%', '4+ outs'], ['50% pot', '25%', '5+ outs'], ['66% pot', '28.5%', '6+ outs'], ['75% pot', '30%', '6-7 outs'], ['100% pot', '33%', '7+ outs'], ['150% pot', '37.5%', '8+ outs']] } },
+      { type: 'table', title: 'Common Drawing Hands', content: '', tableData: { headers: ['Draw', 'Outs', 'Flop Equity', 'Turn Equity'], rows: [['Flush Draw', '9', '35%', '19%'], ['Open-Ended Straight', '8', '31%', '17%'], ['Gutshot Straight', '4', '17%', '9%'], ['Flush + Gutshot', '12', '45%', '26%'], ['Flush + Open-Ended', '15', '54%', '33%'], ['Two Overcards', '6', '24%', '13%'], ['Set to Full House', '7', '28%', '15%']] } },
+      { type: 'tip', title: 'Implied Odds', content: 'Pot odds don\'t tell the whole story. If you\'re drawing to a hidden hand (like a flush with small suited cards), you\'ll often win extra bets when you hit. Add ~10-20% to your "effective odds" for hidden draws.' }
+    ]
+  },
+  {
+    id: 'preflop-strategy',
+    title: 'Preflop Strategy',
+    category: 'Strategy',
+    content: [
+      { type: 'text', content: 'What hands to play preflop depends heavily on your position. Here\'s a simplified guide for beginners.' },
+      { type: 'table', title: 'Starting Hand Guide by Position', content: '', tableData: { headers: ['Position', 'Premium Open', 'Standard Open', 'Avoid'], rows: [['UTG/UTG+1', 'AA-TT, AK, AQs', 'AQo, KQs, AJs', 'Small pairs, suited connectors'], ['MP', 'AA-99, AK-AJ, KQs', '88-77, ATs, KJs', 'Weak aces, small suited'], ['HJ/CO', 'AA-77, AK-AT, KQ-KT', '66-22, suited connectors', 'Only fold trash'], ['BTN', 'Almost everything!', 'Any ace, any pair', 'Only worst hands'], ['SB', '3-bet or fold mostly', 'Wide 3-bet range', 'Don\'t just call'], ['BB', 'Defend wide vs steals', 'Any playable hand', 'Fold to huge raises']] } },
+      { type: 'warning', title: 'Common Preflop Leaks', content: '• **Calling too much from the blinds** - You\'re out of position, be selective\n• **Playing weak aces** - A2-A8 are trap hands, often dominated\n• **Cold calling 3-bets** - Usually should fold or 4-bet, rarely call\n• **Not adjusting to position** - Playing the same hands everywhere' }
+    ]
+  },
+  {
+    id: 'postflop-strategy',
+    title: 'Postflop Strategy',
+    category: 'Strategy',
+    content: [
+      { type: 'text', title: 'The Three Questions', content: 'Before every postflop decision, ask yourself:\n1. **What is my hand strength?** (Monster, strong, medium, weak, draw)\n2. **What is the board texture?** (Wet, dry, paired, scary)\n3. **What does my opponent likely have?** (Their range)' },
+      { type: 'table', title: 'Hand Strength Categories', content: '', tableData: { headers: ['Category', 'Examples', 'Goal'], rows: [['Monster', 'Sets, straights, flushes', 'Build pot, get all-in'], ['Strong', 'Top pair good kicker, overpairs', 'Value bet, but be cautious'], ['Medium', 'Middle pair, weak top pair', 'Pot control, showdown value'], ['Weak', 'Bottom pair, no pair', 'Check/fold or bluff'], ['Draw', 'Flush draw, straight draw', 'Semi-bluff or call with odds']] } },
+      { type: 'tip', title: 'The Fundamental Theorem', content: 'Every time you play a hand differently than you would if you could see your opponent\'s cards, you lose money. Every time you make them play differently than they would seeing yours, you gain.' }
+    ]
+  },
+  {
+    id: 'bluffing',
+    title: 'The Art of Bluffing',
+    category: 'Strategy',
+    content: [
+      { type: 'text', content: 'Bluffing is betting or raising with a weak hand to make better hands fold. It\'s essential to a balanced strategy, but many players bluff incorrectly.' },
+      { type: 'table', title: 'When to Bluff', content: '', tableData: { headers: ['Good Time to Bluff', 'Bad Time to Bluff'], rows: [['Dry boards (K-7-2)', 'Wet boards (J-T-8)'], ['Against tight players', 'Against calling stations'], ['When you have blockers', 'When you block nothing'], ['In position', 'Out of position'], ['When story makes sense', 'Random bluffs'], ['Against 1-2 opponents', 'Against many players']] } },
+      { type: 'text', title: 'Blockers Explained', content: 'Blockers are cards in your hand that reduce the likelihood your opponent has certain hands.\n\n**Example**: You have A♥ on a board of K♥ 9♥ 4♥ 2♠ 7♣\n\nYou don\'t have a flush, but you BLOCK the nut flush (your opponent can\'t have A♥). This makes it a great bluffing spot!' },
+      { type: 'warning', title: 'Bluffing Mistakes', content: '• **Bluffing calling stations** - They don\'t fold, just value bet them\n• **Too small bluffs** - Give your opponent good odds to call\n• **Bluffing multiple players** - Someone usually has something\n• **No story** - Your bluff should represent a believable hand' }
+    ]
+  },
+  {
+    id: 'bankroll',
+    title: 'Bankroll Management',
+    category: 'Advanced',
+    content: [
+      { type: 'text', content: 'Even winning players experience significant downswings. Proper bankroll management ensures you don\'t go broke during bad runs.' },
+      { type: 'table', title: 'Recommended Bankroll', content: '', tableData: { headers: ['Game Type', 'Buy-ins', 'Example ($100 buy-in)'], rows: [['Cash Games (recreational)', '20 buy-ins', '$2,000 bankroll'], ['Cash Games (serious)', '30-50 buy-ins', '$3,000-5,000'], ['Tournaments (recreational)', '50 buy-ins', '$5,000'], ['Tournaments (serious)', '100+ buy-ins', '$10,000+']] } },
+      { type: 'tip', title: 'Move Down, Not Broke', content: 'If you lose 30% of your bankroll, move down in stakes. Protect your roll! You can always move back up when you recover.' }
+    ]
+  }
+];
+
+// Tutorial Component
+const Tutorial: React.FC<{ onExit: () => void }> = ({ onExit }) => {
+  const [currentLessonIndex, setCurrentLessonIndex] = useState(0);
+  const [showCategories, setShowCategories] = useState(true);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+
+  const categories = [...new Set(TUTORIAL_LESSONS.map(l => l.category))];
+  const filteredLessons = selectedCategory 
+    ? TUTORIAL_LESSONS.filter(l => l.category === selectedCategory)
+    : TUTORIAL_LESSONS;
+  const currentLesson = filteredLessons[currentLessonIndex];
+
+  const renderSection = (section: TutorialSection, idx: number) => {
+    switch (section.type) {
+      case 'text':
+        return (
+          <div key={idx} className="mb-4">
+            {section.title && <h3 className="text-lg font-bold text-yellow-400 mb-2">{section.title}</h3>}
+            <div className="text-gray-300 whitespace-pre-line leading-relaxed">
+              {section.content.split('**').map((part, i) => 
+                i % 2 === 1 ? <strong key={i} className="text-white">{part}</strong> : part
+              )}
+            </div>
+          </div>
+        );
+      case 'table':
+        return (
+          <div key={idx} className="mb-4">
+            {section.title && <h3 className="text-lg font-bold text-yellow-400 mb-2">{section.title}</h3>}
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="bg-gray-700">
+                    {section.tableData?.headers.map((h, i) => (
+                      <th key={i} className="px-3 py-2 text-left text-yellow-300 font-bold">{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {section.tableData?.rows.map((row, i) => (
+                    <tr key={i} className={i % 2 === 0 ? 'bg-gray-800' : 'bg-gray-750'}>
+                      {row.map((cell, j) => (
+                        <td key={j} className="px-3 py-2 text-gray-300">{cell}</td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        );
+      case 'tip':
+        return (
+          <div key={idx} className="mb-4 p-4 bg-green-900/30 border border-green-600 rounded-lg">
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-xl">💡</span>
+              <span className="font-bold text-green-400">{section.title || 'Tip'}</span>
+            </div>
+            <p className="text-gray-300">{section.content}</p>
+          </div>
+        );
+      case 'warning':
+        return (
+          <div key={idx} className="mb-4 p-4 bg-red-900/30 border border-red-600 rounded-lg">
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-xl">⚠️</span>
+              <span className="font-bold text-red-400">{section.title || 'Warning'}</span>
+            </div>
+            <p className="text-gray-300">{section.content}</p>
+          </div>
+        );
+      case 'example':
+        return (
+          <div key={idx} className="mb-4 p-4 bg-blue-900/30 border border-blue-600 rounded-lg">
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-xl">📝</span>
+              <span className="font-bold text-blue-400">{section.title || 'Example'}</span>
+            </div>
+            <p className="text-gray-300 whitespace-pre-line">{section.content}</p>
+          </div>
+        );
+      default:
+        return null;
+    }
+  };
+
+  if (showCategories) {
+    return (
+      <div className="min-h-screen bg-gray-900 p-8">
+        <div className="max-w-4xl mx-auto">
+          <div className="flex items-center justify-between mb-8">
+            <h1 className="text-3xl font-bold text-white">📚 Poker Tutorial</h1>
+            <button
+              onClick={onExit}
+              className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors"
+            >
+              ← Back to Menu
+            </button>
+          </div>
+          
+          <p className="text-gray-400 mb-8">Master Texas Hold'em from the basics to advanced strategy. Select a category to begin.</p>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+            {categories.map(cat => {
+              const lessonCount = TUTORIAL_LESSONS.filter(l => l.category === cat).length;
+              const icons: Record<string, string> = {
+                'Basics': '🎯',
+                'Terminology': '📖',
+                'Strategy': '🧠',
+                'Advanced': '🚀'
+              };
+              return (
+                <button
+                  key={cat}
+                  onClick={() => { setSelectedCategory(cat); setShowCategories(false); setCurrentLessonIndex(0); }}
+                  className="p-6 bg-gray-800 hover:bg-gray-700 rounded-xl border border-gray-600 text-left transition-all hover:border-yellow-500"
+                >
+                  <div className="text-3xl mb-2">{icons[cat] || '📄'}</div>
+                  <h2 className="text-xl font-bold text-white mb-1">{cat}</h2>
+                  <p className="text-gray-400 text-sm">{lessonCount} lessons</p>
+                </button>
+              );
+            })}
+          </div>
+          
+          <button
+            onClick={() => { setSelectedCategory(null); setShowCategories(false); setCurrentLessonIndex(0); }}
+            className="w-full p-4 bg-yellow-600 hover:bg-yellow-500 text-black font-bold rounded-xl transition-colors"
+          >
+            📖 Start from Beginning (All Lessons)
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-900 p-4 md:p-8">
+      <div className="max-w-4xl mx-auto">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-6">
+          <button
+            onClick={() => setShowCategories(true)}
+            className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors"
+          >
+            ← Categories
+          </button>
+          <div className="text-gray-400 text-sm">
+            Lesson {currentLessonIndex + 1} of {filteredLessons.length}
+          </div>
+          <button
+            onClick={onExit}
+            className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors"
+          >
+            Exit Tutorial
+          </button>
+        </div>
+
+        {/* Progress Bar */}
+        <div className="w-full h-2 bg-gray-700 rounded-full mb-6">
+          <div 
+            className="h-full bg-yellow-500 rounded-full transition-all duration-300"
+            style={{ width: `${((currentLessonIndex + 1) / filteredLessons.length) * 100}%` }}
+          />
+        </div>
+
+        {/* Lesson Content */}
+        <div className="bg-gray-800 rounded-xl p-6 mb-6 border border-gray-700">
+          <div className="flex items-center gap-3 mb-4">
+            <span className="px-3 py-1 bg-yellow-600 text-black text-xs font-bold rounded-full">
+              {currentLesson.category}
+            </span>
+          </div>
+          <h2 className="text-2xl font-bold text-white mb-6">{currentLesson.title}</h2>
+          
+          <div className="space-y-4">
+            {currentLesson.content.map((section, idx) => renderSection(section, idx))}
+          </div>
+        </div>
+
+        {/* Navigation */}
+        <div className="flex justify-between gap-4">
+          <button
+            onClick={() => setCurrentLessonIndex(Math.max(0, currentLessonIndex - 1))}
+            disabled={currentLessonIndex === 0}
+            className="flex-1 px-6 py-3 bg-gray-700 hover:bg-gray-600 disabled:bg-gray-800 disabled:text-gray-600 text-white font-bold rounded-xl transition-colors"
+          >
+            ← Previous
+          </button>
+          <button
+            onClick={() => setCurrentLessonIndex(Math.min(filteredLessons.length - 1, currentLessonIndex + 1))}
+            disabled={currentLessonIndex === filteredLessons.length - 1}
+            className="flex-1 px-6 py-3 bg-yellow-600 hover:bg-yellow-500 disabled:bg-gray-800 disabled:text-gray-600 text-black font-bold rounded-xl transition-colors"
+          >
+            Next →
+          </button>
+        </div>
+
+        {/* Lesson List */}
+        <div className="mt-8">
+          <h3 className="text-lg font-bold text-white mb-4">All Lessons in {selectedCategory || 'Tutorial'}</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+            {filteredLessons.map((lesson, idx) => (
+              <button
+                key={lesson.id}
+                onClick={() => setCurrentLessonIndex(idx)}
+                className={`p-3 text-left rounded-lg transition-colors ${
+                  idx === currentLessonIndex 
+                    ? 'bg-yellow-600 text-black' 
+                    : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+                }`}
+              >
+                <span className="text-sm">{idx + 1}. {lesson.title}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // --- Helper Components ---
 
 const PlayingCard: React.FC<{ card: Card; className?: string; showCard?: boolean }> = ({ card, className = '', showCard = true }) => {
@@ -975,6 +1352,7 @@ const PokerTable: React.FC = () => {
   const handsPerLevel = 5;
 
   const [gameStarted, setGameStarted] = useState(false);
+  const [tutorialMode, setTutorialMode] = useState(false);
   const [replayMode, setReplayMode] = useState(false);
   const [showAllHands, setShowAllHands] = useState(false);
   const [logsExpanded, setLogsExpanded] = useState(false);
@@ -1878,6 +2256,11 @@ const PokerTable: React.FC = () => {
   const callAmount = userPlayer ? gameState.currentBet - userPlayer.currentBet : 0;
   const canCheck = callAmount === 0;
 
+  // Show tutorial if in tutorial mode
+  if (tutorialMode) {
+    return <Tutorial onExit={() => setTutorialMode(false)} />;
+  }
+
   return (
     <div className="min-h-screen bg-gray-900 flex flex-col items-center justify-center p-4 pb-36 overflow-hidden">
       {/* Start Screen */}
@@ -1901,6 +2284,14 @@ const PokerTable: React.FC = () => {
                 Full Game
               </button>
               <p className="text-gray-500 text-xs">Play until one player has all the chips</p>
+              <div className="border-t border-gray-600 my-3"></div>
+              <button
+                onClick={() => setTutorialMode(true)}
+                className="px-8 py-3 bg-yellow-600 hover:bg-yellow-500 text-black font-bold rounded-lg text-lg transition-colors"
+              >
+                📚 Tutorial
+              </button>
+              <p className="text-gray-500 text-xs">Learn Texas Hold'em from scratch</p>
             </div>
           </div>
         </div>
