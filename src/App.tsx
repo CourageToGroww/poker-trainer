@@ -2006,14 +2006,12 @@ const PokerTable: React.FC = () => {
                 Show All Hands
               </label>
             )}
-            {fullGameMode && (
-              <button
+            <button
                 onClick={() => { setIsPaused(false); setGameStarted(false); setGameWinner(null); }}
                 className="px-4 py-2 bg-gray-600 hover:bg-gray-500 text-white text-xs rounded transition-colors"
               >
-                Exit Game
+                Exit
               </button>
-            )}
           </div>
         </div>
       )}
