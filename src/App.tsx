@@ -959,7 +959,7 @@ const ActionLog: React.FC<{
 // --- Main Component ---
 
 const PokerTable: React.FC = () => {
-  // Blind structure - increases every 5 hands in tournament mode
+  // Blind structure - increases every 5 hands in full game mode
   const blindLevels = [
     { sb: 25, bb: 50 },
     { sb: 50, bb: 100 },
@@ -1142,7 +1142,7 @@ const PokerTable: React.FC = () => {
     setHandNumber(1);
     setHandWinner(null);
     setGameWinner(null);
-    setBlindLevel(0); // Reset blinds for new tournament
+    setBlindLevel(0); // Reset blinds for new game
   };
 
   const startNextHand = useCallback(() => {
@@ -1154,7 +1154,7 @@ const PokerTable: React.FC = () => {
     if (playersWithChips.length <= 1) {
       const winnerIdx = chipCounts.findIndex(c => c > 0);
       const winner = players[winnerIdx];
-      setGameWinner(winner?.name === 'You' ? 'You win the tournament!' : `${winner?.positionName} (AI) wins the tournament!`);
+      setGameWinner(winner?.name === 'You' ? 'You win the game!' : `${winner?.positionName} (AI) wins the game!`);
       return;
     }
 
@@ -1184,7 +1184,7 @@ const PokerTable: React.FC = () => {
     setShowAllHands(false);
   }, [players, dealerIndex, handNumber, blindLevel, handsPerLevel, initializeGame]);
 
-  // Auto-continue to next hand in tournament mode
+  // Auto-continue to next hand in full game mode
   useEffect(() => {
     if (fullGameMode && handWinner && !gameWinner && !isPaused) {
       const timer = setTimeout(() => {
@@ -1484,7 +1484,7 @@ const PokerTable: React.FC = () => {
     });
   }, [gameStarted, players]);
 
-  // ELITE AI Logic - Tournament Crusher
+  // ELITE AI Logic - GTO Crusher
   useEffect(() => {
     if (!gameStarted) return;
     const currentActive = players.find(p => p.isActive);
@@ -1898,7 +1898,7 @@ const PokerTable: React.FC = () => {
                 onClick={() => startNewGame(true)}
                 className="px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg text-lg transition-colors"
               >
-                Full Tournament
+                Full Game
               </button>
               <p className="text-gray-500 text-xs">Play until one player has all the chips</p>
             </div>
@@ -1910,14 +1910,14 @@ const PokerTable: React.FC = () => {
       {gameWinner && (
         <div className="absolute inset-0 bg-black/90 flex items-center justify-center z-50">
           <div className="bg-gray-800 p-8 rounded-xl border border-yellow-500 text-center">
-            <h1 className="text-4xl font-bold text-yellow-400 mb-4">🏆 Tournament Over!</h1>
+            <h1 className="text-4xl font-bold text-yellow-400 mb-4">🏆 Game Over!</h1>
             <p className="text-2xl text-white mb-6">{gameWinner}</p>
             <div className="flex gap-4 justify-center">
               <button
                 onClick={() => startNewGame(true)}
                 className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg transition-colors"
               >
-                New Tournament
+                New Game
               </button>
               <button
                 onClick={() => startNewGame(false)}
@@ -1962,7 +1962,7 @@ const PokerTable: React.FC = () => {
             {fullGameMode && (
               <div className="mb-2">
                 <div className="text-yellow-400 text-xs font-bold">
-                  Hand #{handNumber} - Tournament Mode
+                  Hand #{handNumber} - Full Game
                 </div>
                 <div className="text-cyan-400 text-xs mt-1">
                   Blinds: ${smallBlind}/${bigBlind} (Level {blindLevel + 1})
@@ -1984,7 +1984,7 @@ const PokerTable: React.FC = () => {
                   onClick={() => { setIsPaused(false); startNewGame(true); }}
                   className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-bold rounded transition-colors"
                 >
-                  Restart Tournament
+                  Restart Game
                 </button>
               </>
             ) : (
@@ -2011,7 +2011,7 @@ const PokerTable: React.FC = () => {
                 onClick={() => { setIsPaused(false); startNewGame(false); }}
                 className="px-4 py-2 bg-gray-600 hover:bg-gray-500 text-white text-xs rounded transition-colors"
               >
-                Exit Tournament
+                Exit Game
               </button>
             )}
           </div>
