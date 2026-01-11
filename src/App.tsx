@@ -46,6 +46,207 @@ interface ActionLogEntry {
   handStrength?: number;
 }
 
+// --- Opponent Tracking System ---
+
+interface PlayerStats {
+  oddsPlayedPreflop: number;  // VPIP - Voluntarily Put $ In Pot
+  handsPlayed: number;
+  preflopRaises: number;      // PFR - Preflop Raise %
+  aggression: number;         // AF - Aggression Factor (bets+raises / calls)
+  bets: number;
+  raises: number;
+  calls: number;
+  folds: number;
+  foldToCBet: number;         // Fold to continuation bet %
+  cBetFaced: number;
+  threeBets: number;          // 3-bet frequency
+  threeBetOpportunities: number;
+  showdownsWon: number;
+  showdownsTotal: number;
+  avgBetSize: number;         // Average bet size as % of pot
+  totalBetAmount: number;
+  betCount: number;
+}
+
+interface BoardTexture {
+  wetness: number;            // 0-100, how draw-heavy
+  connectedness: number;      // 0-100, straight draw potential
+  pairedness: number;         // 0 = unpaired, 1 = paired, 2 = trips
+  suitedness: number;         // 0-3, number of same suit
+  highCard: number;           // Highest card rank value
+  lowCard: number;            // Lowest card rank value
+  hasFlushDraw: boolean;
+  hasStraightDraw: boolean;
+  isMonotone: boolean;        // All same suit
+  isRainbow: boolean;         // All different suits
+}
+
+interface DrawEquity {
+  flushOuts: number;
+  straightOuts: number;
+  totalOuts: number;
+  equity: number;             // Approximate % to improve
+  impliedOdds: number;        // Adjusted for future betting
+}
+
+// Initialize empty stats for a player
+const createEmptyStats = (): PlayerStats => ({
+  handsPlayed: 0,
+  oddsPlayedPreflop: 0,
+  preflopRaises: 0,
+  aggression: 1,
+  bets: 0,
+  raises: 0,
+  calls: 0,
+  folds: 0,
+  foldToCBet: 0,
+  cBetFaced: 0,
+  threeBets: 0,
+  threeBetOpportunities: 0,
+  showdownsWon: 0,
+  showdownsTotal: 0,
+  avgBetSize: 0.6,
+  totalBetAmount: 0,
+  betCount: 0,
+});
+
+// Analyze board texture
+const analyzeBoardTexture = (communityCards: Card[]): BoardTexture => {
+  if (communityCards.length === 0) {
+    return {
+      wetness: 50, connectedness: 50, pairedness: 0, suitedness: 0,
+      highCard: 0, lowCard: 0, hasFlushDraw: false, hasStraightDraw: false,
+      isMonotone: false, isRainbow: true,
+    };
+  }
+
+  const ranks = communityCards.map(c => RANK_VALUES[c.rank]).sort((a, b) => b - a);
+  const suits = communityCards.map(c => c.suit);
+  const suitCounts: Record<string, number> = {};
+  suits.forEach(s => suitCounts[s] = (suitCounts[s] || 0) + 1);
+  const maxSuitCount = Math.max(...Object.values(suitCounts));
+
+  // Check for pairs
+  const rankCounts: Record<number, number> = {};
+  ranks.forEach(r => rankCounts[r] = (rankCounts[r] || 0) + 1);
+  const maxRankCount = Math.max(...Object.values(rankCounts));
+  const pairedness = maxRankCount - 1;
+
+  // Check connectedness (gaps between cards)
+  const uniqueRanks = [...new Set(ranks)].sort((a, b) => a - b);
+  let connectedness = 0;
+  for (let i = 0; i < uniqueRanks.length - 1; i++) {
+    const gap = uniqueRanks[i + 1] - uniqueRanks[i];
+    if (gap <= 2) connectedness += (3 - gap) * 20;
+  }
+  // Check for wheel potential (A-2-3-4-5)
+  if (uniqueRanks.includes(14) && uniqueRanks.some(r => r <= 5)) {
+    connectedness += 15;
+  }
+  connectedness = Math.min(100, connectedness);
+
+  // Wetness = flush draws + straight draws
+  const hasFlushDraw = maxSuitCount >= 2;
+  const hasStraightDraw = connectedness >= 30;
+  let wetness = hasFlushDraw ? 10 : 0;
+  wetness += hasStraightDraw ? 10 : 0;
+  if (maxSuitCount >= 3) wetness += 50;
+  else if (maxSuitCount === 2) wetness += 25;
+  wetness += connectedness * 0.5;
+  if (pairedness > 0) wetness -= 20; // Paired boards are drier
+  wetness = Math.max(0, Math.min(100, wetness));
+
+  return {
+    wetness,
+    connectedness,
+    pairedness,
+    suitedness: maxSuitCount,
+    highCard: ranks[0] || 0,
+    lowCard: ranks[ranks.length - 1] || 0,
+    hasFlushDraw: maxSuitCount >= 2,
+    hasStraightDraw: connectedness >= 30,
+    isMonotone: maxSuitCount >= 3,
+    isRainbow: Object.keys(suitCounts).length === communityCards.length,
+  };
+};
+
+// Calculate draw equity
+const calculateDrawEquity = (holeCards: Card[], communityCards: Card[]): DrawEquity => {
+  if (communityCards.length === 0 || communityCards.length >= 5) {
+    return { flushOuts: 0, straightOuts: 0, totalOuts: 0, equity: 0, impliedOdds: 0 };
+  }
+
+  const allCards = [...holeCards, ...communityCards];
+  const suits = allCards.map(c => c.suit);
+  const ranks = allCards.map(c => RANK_VALUES[c.rank]);
+
+  // Flush outs
+  const suitCounts: Record<string, number> = {};
+  suits.forEach(s => suitCounts[s] = (suitCounts[s] || 0) + 1);
+  const maxSuit = Object.entries(suitCounts).sort((a, b) => b[1] - a[1])[0];
+  let flushOuts = 0;
+  if (maxSuit && maxSuit[1] === 4) flushOuts = 9; // 4 to a flush = 9 outs
+  else if (maxSuit && maxSuit[1] === 3 && communityCards.length <= 3) flushOuts = 2; // Backdoor
+
+  // Straight outs (simplified)
+  const uniqueRanks = [...new Set(ranks)].sort((a, b) => a - b);
+  let straightOuts = 0;
+  
+  // Check for open-ended straight draw
+  for (let i = 0; i <= uniqueRanks.length - 4; i++) {
+    const consecutive = uniqueRanks.slice(i, i + 4);
+    if (consecutive[3] - consecutive[0] === 3) {
+      straightOuts = 8; // Open-ended = 8 outs
+      break;
+    }
+  }
+  
+  // Check for gutshot
+  if (straightOuts === 0) {
+    for (let target = 5; target <= 14; target++) {
+      const needed = [target - 4, target - 3, target - 2, target - 1, target];
+      const have = needed.filter(r => uniqueRanks.includes(r) || (r === 1 && uniqueRanks.includes(14)));
+      if (have.length === 4) {
+        straightOuts = 4; // Gutshot = 4 outs
+        break;
+      }
+    }
+  }
+
+  // Remove duplicate outs (straight flush potential)
+  const totalOuts = flushOuts + straightOuts - (flushOuts > 0 && straightOuts > 0 ? 2 : 0);
+  
+  // Equity approximation (rule of 2 and 4)
+  const multiplier = communityCards.length === 3 ? 4 : 2;
+  const equity = Math.min(totalOuts * multiplier, 60);
+  
+  // Implied odds boost for hidden draws
+  const impliedOdds = equity * 1.2;
+
+  return { flushOuts, straightOuts, totalOuts, equity, impliedOdds };
+};
+
+// GTO-inspired range percentages by position (% of hands to play)
+const GTO_RANGES: Record<Position, { open: number; call: number; threeBet: number }> = {
+  'UTG': { open: 12, call: 8, threeBet: 4 },
+  'UTG+1': { open: 14, call: 9, threeBet: 4.5 },
+  'MP': { open: 18, call: 11, threeBet: 5 },
+  'HJ': { open: 22, call: 13, threeBet: 6 },
+  'CO': { open: 28, call: 16, threeBet: 8 },
+  'BTN': { open: 42, call: 22, threeBet: 10 },
+  'SB': { open: 35, call: 18, threeBet: 9 },
+  'BB': { open: 25, call: 35, threeBet: 11 },
+};
+
+// Aggression factors by street (how much to multiply base aggression)
+const STREET_AGGRESSION: Record<Street, number> = {
+  'preflop': 1.0,
+  'flop': 1.2,
+  'turn': 1.4,
+  'river': 1.6,
+  'showdown': 1.0,
+};
+
 // --- Hand Evaluation ---
 
 const RANK_VALUES: Record<Rank, number> = {
@@ -883,6 +1084,50 @@ const PokerTable: React.FC = () => {
     deck: []
   });
   const [actionLog, setActionLog] = useState<ActionLogEntry[]>([]);
+  
+  // Advanced AI: Track opponent statistics for exploitative play
+  const [playerStats, setPlayerStats] = useState<Record<string, PlayerStats>>({});
+  
+
+  // Update player stats based on action
+  const updatePlayerStats = useCallback((playerId: string, action: ActionType, amount: number, street: Street, pot: number) => {
+    setPlayerStats(prev => {
+      const stats = prev[playerId] || createEmptyStats();
+      const newStats = { ...stats };
+
+      if (street === 'preflop' && (action === 'call' || action === 'raise')) {
+        newStats.handsPlayed++;
+        newStats.oddsPlayedPreflop = (newStats.handsPlayed / Math.max(1, handNumber)) * 100;
+      }
+
+      switch (action) {
+        case 'fold':
+          newStats.folds++;
+          break;
+        case 'call':
+          newStats.calls++;
+          break;
+        case 'raise':
+        case 'all-in':
+          newStats.raises++;
+          if (street === 'preflop') {
+            newStats.preflopRaises++;
+          }
+          if (amount > 0 && pot > 0) {
+            newStats.totalBetAmount += (amount / pot);
+            newStats.betCount++;
+            newStats.avgBetSize = newStats.totalBetAmount / newStats.betCount;
+          }
+          break;
+      }
+
+      // Update aggression factor
+      const totalActions = newStats.bets + newStats.raises + newStats.calls;
+      newStats.aggression = totalActions > 0 ? (newStats.bets + newStats.raises) / Math.max(1, newStats.calls) : 1;
+
+      return { ...prev, [playerId]: newStats };
+    });
+  }, [handNumber]);
 
   const startNewGame = (isFullGame = false) => {
     const { players: p, gameState: g, actionLog: a, dealerIndex: d } = initializeGame();
@@ -1197,7 +1442,12 @@ const PokerTable: React.FC = () => {
       optimalAction,
       handStrength
     }]);
-  }, [players, gameState, bigBlind]);
+
+    // Track stats for the human player (position 0)
+    if (currentActive.position === 0) {
+      updatePlayerStats(currentActive.id, action, potAdd || 0, gameState.street, gameState.pot);
+    }
+  }, [players, gameState, bigBlind, updatePlayerStats]);
 
   // Ref to prevent AI action clustering
   const aiProcessingRef = useRef(false);
@@ -1234,7 +1484,7 @@ const PokerTable: React.FC = () => {
     });
   }, [gameStarted, players]);
 
-  // HARD AI Logic - GTO-inspired
+  // ELITE AI Logic - Tournament Crusher
   useEffect(() => {
     if (!gameStarted) return;
     const currentActive = players.find(p => p.isActive);
@@ -1261,22 +1511,20 @@ const PokerTable: React.FC = () => {
         if (gameState.currentBet <= currentActive.currentBet) {
           processAction('check');
         } else {
-          // All-in and can't match - mark as acted and move on
           setPlayers(prev => {
             const newPlayers = prev.map(p => ({ ...p }));
             const idx = newPlayers.findIndex(p => p.isActive);
             if (idx !== -1) {
               newPlayers[idx].hasActed = true;
               newPlayers[idx].isActive = false;
-              // Find next active player
               let nextPos = (idx + 1) % newPlayers.length;
               let attempts = 0;
-              while ((newPlayers[nextPos].isFolded || newPlayers[nextPos].chips === 0) && attempts < 7) {
-                newPlayers[nextPos].hasActed = true; // Mark all-in players as acted
+              while ((newPlayers[nextPos].isFolded || newPlayers[nextPos].chips === 0) && attempts < 8) {
+                newPlayers[nextPos].hasActed = true;
                 nextPos = (nextPos + 1) % newPlayers.length;
                 attempts++;
               }
-              if (attempts < 7 && !newPlayers[nextPos].hasActed) {
+              if (attempts < 8 && !newPlayers[nextPos].hasActed) {
                 newPlayers[nextPos].isActive = true;
               }
             }
@@ -1286,72 +1534,203 @@ const PokerTable: React.FC = () => {
         return;
       }
 
+      // === ELITE AI DECISION ENGINE ===
+      
       const cards = currentActive.cards.map(c => ({ ...c, hidden: false }));
       const handStrength = evaluateBoardStrength(cards, gameState.communityCards);
       const callAmount = gameState.currentBet - currentActive.currentBet;
-      const potOdds = gameState.pot > 0 ? (callAmount / (gameState.pot + callAmount)) * 100 : 0;
-
-      // Position-based aggression factor
-      const positionFactor: Record<Position, number> = {
-        'BTN': 1.3, 'CO': 1.2, 'HJ': 1.1, 'MP': 1.0, 'UTG+1': 0.9, 'UTG': 0.85, 'SB': 0.9, 'BB': 1.0
-      };
-      const aggression = positionFactor[currentActive.positionName] || 1;
-
-      // Adjusted hand strength with position
-      const effectiveStrength = handStrength * aggression;
-
-      // Add randomness for unpredictability (GTO mixing)
-      const variance = (Math.random() - 0.5) * 15;
+      const pot = gameState.pot;
+      const potOdds = pot > 0 ? (callAmount / (pot + callAmount)) * 100 : 0;
+      
+      // Board texture analysis
+      const boardTexture = analyzeBoardTexture(gameState.communityCards);
+      
+      // Draw equity calculation
+      const drawEquity = calculateDrawEquity(cards, gameState.communityCards);
+      
+      // Stack-to-pot ratio
+      const spr = pot > 0 ? currentActive.chips / pot : 10;
+      
+      // Get opponent stats (the human player)
+      const humanStats = playerStats['1'] || createEmptyStats();
+      
+      // Active players count (affects range decisions)
+      const activePlayers = players.filter(p => !p.isFolded).length;
+      
+      // Position-based factors
+      const position = currentActive.positionName;
+      const gtoRange = GTO_RANGES[position];
+      const streetAggression = STREET_AGGRESSION[gameState.street];
+      
+      // === EXPLOITATIVE ADJUSTMENTS ===
+      
+      // Is human playing too loose? (VPIP > 35%)
+      const humanIsLoose = humanStats.oddsPlayedPreflop > 35;
+      // Is human playing too passive? (AF < 1.5)
+      const humanIsPassive = humanStats.aggression < 1.5;
+      // Does human fold too much to c-bets?
+      const humanFoldsToCBet = humanStats.cBetFaced > 3 && (humanStats.foldToCBet / humanStats.cBetFaced) > 0.6;
+      // Is human aggressive? (AF > 2.5)
+      const humanIsAggressive = humanStats.aggression > 2.5;
+      
+      // === CALCULATE EFFECTIVE STRENGTH ===
+      
+      let effectiveStrength = handStrength;
+      
+      // GTO range adjustment - tighten/loosen based on position
+      const rangeWidth = gtoRange.open;
+      if (handStrength < rangeWidth) {
+        effectiveStrength -= 5; // Below our opening range, penalize
+      }
+      
+      // Exploit loose players - value bet thinner
+      if (humanIsLoose) {
+        effectiveStrength += 5; // Our medium hands play better vs wide ranges
+      }
+      
+      // Add draw equity on flop/turn
+      if (gameState.street === 'flop' || gameState.street === 'turn') {
+        effectiveStrength += drawEquity.equity * 0.7;
+      }
+      
+      // Board texture adjustments
+      if (boardTexture.wetness > 60) {
+        // Wet board - need stronger hands, draws have more value
+        effectiveStrength -= 5;
+        if (drawEquity.totalOuts >= 8) effectiveStrength += 10;
+      } else if (boardTexture.wetness < 30) {
+        // Dry board - bluffs work better, medium hands hold up
+        effectiveStrength += 3;
+      }
+      
+      // Multi-way adjustment (tighten up)
+      if (activePlayers > 2) {
+        effectiveStrength -= (activePlayers - 2) * 5;
+      }
+      
+      // SPR adjustment
+      if (spr < 3) {
+        // Short SPR - commit with strong hands, fold medium
+        if (effectiveStrength >= 70) effectiveStrength += 10;
+        else if (effectiveStrength < 50) effectiveStrength -= 10;
+      }
+      
+      // GTO mixing with variance
+      const variance = (Math.random() - 0.5) * 10;
       const finalStrength = effectiveStrength + variance;
-
-      // Calculate max raise this AI can make
-      const maxAIRaise = currentActive.chips + currentActive.currentBet;
-      const canRaise = currentActive.chips > callAmount; // Has chips beyond calling
-
-      if (callAmount === 0) {
-        // Can check - decide to check or bet
-        if (finalStrength >= 70 && canRaise) {
-          // Value bet - cap to available chips
-          const betSize = Math.floor(gameState.pot * (0.5 + Math.random() * 0.5));
-          const actualBet = Math.min(Math.max(gameState.minRaise, betSize), maxAIRaise);
-          processAction('raise', actualBet);
-        } else if (finalStrength >= 40 && Math.random() < 0.3 * aggression && canRaise) {
-          // Semi-bluff - cap to available chips
-          processAction('raise', Math.min(gameState.minRaise, maxAIRaise));
+      
+      // === BET SIZING LOGIC ===
+      
+      const maxBet = currentActive.chips + currentActive.currentBet;
+      const canRaise = currentActive.chips > callAmount;
+      
+      // Polarized vs linear sizing
+      const getPolarizedBetSize = (strength: number): number => {
+        if (strength >= 85) {
+          // Nuts - overbet for value
+          return Math.min(pot * (1.2 + Math.random() * 0.8), maxBet);
+        } else if (strength >= 70) {
+          // Strong - standard value bet
+          return Math.min(pot * (0.6 + Math.random() * 0.3), maxBet);
+        } else if (strength < 40) {
+          // Bluff - same size as value to be balanced
+          return Math.min(pot * (0.6 + Math.random() * 0.3), maxBet);
         } else {
+          // Medium - block bet or check
+          return Math.min(pot * (0.25 + Math.random() * 0.15), maxBet);
+        }
+      };
+      
+      // === DECISION MAKING ===
+      
+      if (callAmount === 0) {
+        // === BETTING SPOT (checked to us or we're first) ===
+        
+        const shouldValueBet = finalStrength >= 65;
+        const shouldSemiBluff = drawEquity.totalOuts >= 6 && finalStrength >= 35;
+        const shouldBluff = finalStrength < 30 && Math.random() < 0.25 * streetAggression;
+        
+        // Exploit: Bet more vs passive/foldy opponents
+        const exploitBetFreq = humanIsPassive || humanFoldsToCBet ? 0.15 : 0;
+        
+        if (shouldValueBet && canRaise) {
+          const betSize = getPolarizedBetSize(finalStrength);
+          processAction('raise', Math.max(gameState.minRaise, Math.floor(betSize)));
+        } else if (shouldSemiBluff && canRaise && Math.random() < 0.7) {
+          const betSize = pot * (0.5 + Math.random() * 0.25);
+          processAction('raise', Math.min(Math.max(gameState.minRaise, Math.floor(betSize)), maxBet));
+        } else if ((shouldBluff || Math.random() < exploitBetFreq) && canRaise) {
+          const bluffSize = pot * (0.6 + Math.random() * 0.3);
+          processAction('raise', Math.min(Math.max(gameState.minRaise, Math.floor(bluffSize)), maxBet));
+        } else {
+          // Check with intention - might check-raise
           processAction('check');
         }
+        
       } else {
-        // Facing a bet
+        // === FACING A BET ===
+        
         const requiredEquity = potOdds;
-
-        if (finalStrength >= 80 && canRaise) {
-          // Strong hand - raise for value (capped to chips)
-          const raiseSize = Math.floor(gameState.currentBet * (2 + Math.random()));
-          processAction('raise', Math.min(raiseSize, maxAIRaise));
-        } else if (finalStrength >= requiredEquity + 15) {
-          // Good hand - call
+        const impliedEquity = drawEquity.impliedOdds;
+        
+        // === VALUE RAISE ===
+        if (finalStrength >= 85 && canRaise) {
+          // Monster - raise big
+          const raiseSize = gameState.currentBet * (2.5 + Math.random() * 1.5);
+          processAction('raise', Math.min(Math.floor(raiseSize), maxBet));
+        }
+        // === STRONG CALL/RAISE ===
+        else if (finalStrength >= 70 && canRaise) {
+          // Strong hand - mix between raise and call
+          if (Math.random() < 0.4) {
+            const raiseSize = gameState.currentBet * (2 + Math.random());
+            processAction('raise', Math.min(Math.floor(raiseSize), maxBet));
+          } else {
+            processAction('call');
+          }
+        }
+        // === CALLING RANGE ===
+        else if (finalStrength >= requiredEquity + 10) {
           processAction('call');
-        } else if (finalStrength >= requiredEquity && Math.random() < 0.6) {
-          // Marginal - sometimes call
+        }
+        // === DRAW WITH ODDS ===
+        else if (drawEquity.totalOuts >= 8 && impliedEquity >= requiredEquity) {
+          // Good draw with implied odds - call or semi-bluff raise
+          if (Math.random() < 0.3 && canRaise) {
+            processAction('raise', Math.min(gameState.currentBet * 2.5, maxBet));
+          } else {
+            processAction('call');
+          }
+        }
+        // === MARGINAL SPOTS ===
+        else if (finalStrength >= requiredEquity - 5 && Math.random() < 0.5) {
+          // Close decision - sometimes call to not be exploitable
           processAction('call');
-        } else if (finalStrength >= 50 && Math.random() < 0.15 * aggression && canRaise) {
-          // Bluff raise occasionally (capped to chips)
-          processAction('raise', Math.min(gameState.currentBet * 2.5, maxAIRaise));
-        } else {
-          // Fold
+        }
+        // === BLUFF CATCH ===
+        else if (humanIsAggressive && finalStrength >= 40 && Math.random() < 0.35) {
+          // Exploit: Call down aggressive players lighter
+          processAction('call');
+        }
+        // === BLUFF RAISE ===
+        else if (finalStrength < 25 && canRaise && Math.random() < 0.12 * streetAggression) {
+          // Balanced bluff raise (polarized)
+          processAction('raise', Math.min(gameState.currentBet * 3, maxBet));
+        }
+        // === FOLD ===
+        else {
           processAction('fold');
         }
       }
-      // Reset processing flag after action
+      
       aiProcessingRef.current = false;
-    }, 800 + Math.random() * 400);
+    }, 600 + Math.random() * 500);
 
     return () => {
       clearTimeout(timer);
       aiProcessingRef.current = false;
     };
-  }, [players, gameState, gameStarted, processAction]);
+  }, [players, gameState, gameStarted, processAction, playerStats]);
 
   // Check for street advancement
   useEffect(() => {
