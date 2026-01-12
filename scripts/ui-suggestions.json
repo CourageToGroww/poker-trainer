@@ -1,0 +1,72 @@
+{
+  "colorScheme": {
+    "primary": "#104b38",
+    "secondary": "#cbd5e1",
+    "accent": "#f59e0b",
+    "background": "#111827",
+    "surface": "#1f2937",
+    "danger": "#be123c"
+  },
+  "improvements": [
+    {
+      "area": "Main Menu Buttons",
+      "current": "Likely default or basic button styling.",
+      "suggested": "bg-surface hover:bg-accent text-secondary hover:text-background font-bold py-3 px-8 rounded-lg shadow-lg transition-all duration-300 transform hover:-translate-y-1 focus:outline-none focus:ring-2 focus:ring-accent focus:ring-opacity-50",
+      "reason": "This creates a high-contrast, professional look. The hover effect with the accent color provides clear, satisfying feedback. The transform effect adds a subtle, premium feel, making the menu feel more dynamic and inviting."
+    },
+    {
+      "area": "Poker Table Layout",
+      "current": "An oval arrangement of players, likely using a simplified layout.",
+      "suggested": "<div class=\"relative w-[1000px] h-[600px] bg-primary rounded-full border-[16px] border-gray-700 shadow-2xl mx-auto\">\n  <div class=\"absolute inset-10 bg-green-900 rounded-full\">\n    <!-- Pot and Community Cards go here -->\n  </div>\n  <!-- Player Pods positioned absolutely -->\n</div>",
+      "reason": "This structure creates a realistic, felt-topped poker table with a wooden rail. Using a nested `div` for the inner felt adds depth and realism. Absolute positioning for players is crucial for a perfect oval arrangement, which is hard to achieve with standard flex or grid layouts."
+    },
+    {
+      "area": "Player Pod",
+      "current": "A simple container for player information (name, chips, cards).",
+      "suggested": "bg-surface/60 backdrop-blur-sm border border-gray-700 rounded-xl p-3 w-40 text-center shadow-lg transition-all duration-300. \n// Active Player State:\nring-2 ring-accent shadow-accent/20. \n// Folded Player State:\nopacity-50 grayscale",
+      "reason": "The semi-transparent, blurred background (glassmorphism) is a modern UI trend that adds depth without distracting from the game. The ring on the active player is a critical UX feature, clearly indicating whose turn it is. Fading and desaturating folded players cleans up the interface and focuses attention on the active hand."
+    },
+    {
+      "area": "Playing Card (Face Up)",
+      "current": "A basic div displaying rank and suit.",
+      "suggested": "bg-white rounded-md shadow-lg w-16 h-24 p-1 flex flex-col justify-between relative. Use `text-danger` for \u2665 and \u2666, and `text-gray-900` for \u2660 and \u2663. Position rank and suit in top-left and bottom-right corners.",
+      "reason": "This styling closely mimics a real playing card, enhancing realism. Using distinct colors for red and black suits is a fundamental design pattern for playing cards that drastically improves scannability and recognition speed."
+    },
+    {
+      "area": "Playing Card (Face Down)",
+      "current": "Likely a single-color div.",
+      "suggested": "bg-blue-800 rounded-md shadow-lg w-16 h-24 border-2 border-blue-900 bg-no-repeat bg-center [background-image:url('data:image/svg+xml,...')]",
+      "reason": "A generic colored rectangle looks cheap. A custom back with a subtle pattern (can be an inline SVG for performance) immediately makes the application look more polished and professional. It's a small detail with a large impact on perceived quality."
+    },
+    {
+      "area": "Action Buttons",
+      "current": "Buttons are likely styled uniformly.",
+      "suggested": "Use a hierarchy:\n- Fold: `bg-gray-600 hover:bg-gray-500 text-white font-semibold py-3 px-6 rounded-md shadow-md`\n- Check/Call: `bg-sky-600 hover:bg-sky-500 text-white font-semibold py-3 px-6 rounded-md shadow-md`\n- Bet/Raise: `bg-accent hover:bg-amber-400 text-background font-bold py-4 px-8 rounded-md shadow-lg`",
+      "reason": "This creates a clear visual hierarchy that guides user actions. 'Fold' is muted as a secondary, destructive action. 'Check/Call' is a standard, neutral action. 'Bet/Raise' is the primary aggressive action, using the bright accent color and a larger size to draw attention. This intuitive coloring reduces cognitive load."
+    },
+    {
+      "area": "Chip Stack",
+      "current": "Chip count is probably just text.",
+      "suggested": "Represent chips visually. Use a stack of colored circular divs: `<div class=\"flex -space-x-3 items-center\"><div class=\"w-6 h-6 rounded-full bg-red-500 border-2 border-white\"></div>...</div>` next to the chip count text.",
+      "reason": "Visual representation is more engaging than text alone. A stack of poker chips is instantly recognizable and adds to the theme and immersion of the application. It makes the abstract concept of a chip count more tangible."
+    },
+    {
+      "area": "Tutorial/Strategy Component",
+      "current": "A block of text.",
+      "suggested": "bg-surface border-l-4 border-accent p-4 rounded-r-lg shadow-md. \n<p class=\"text-secondary\"><strong class=\"text-accent\">BTN (Button):</strong> BEST position! Open very wide...</p>",
+      "reason": "This callout style separates the tutorial information from the main game UI. The accent-colored left border draws the eye and signifies it as a special informational component, improving readability and making the advice feel more impactful."
+    }
+  ],
+  "animations": [
+    "**Active Player Indicator**: Use a subtle, slow pulse on the active player's ring highlight. `class='... ring-accent animate-pulse'` with custom pulse animation.",
+    "**Card Dealing**: Animate cards sliding from the dealer button to each player's position. This is the most important animation for game flow and feel.",
+    "**Chip Movement**: When a player bets, animate their chips moving from their stack to the central pot. This provides clear feedback on game state changes.",
+    "**Community Card Reveal**: Animate the flop, turn, and river cards flipping over with a 3D rotation (`transform: rotateY(180deg)`).",
+    "**Winning Hand Highlight**: When a hand is won, briefly highlight the winning player's cards and the cards on the board that form their winning combination with a golden glow.",
+    "**Button Feedback**: On hover, action buttons should slightly scale up (`hover:scale-105`) to feel more interactive and responsive."
+  ],
+  "typography": {
+    "headings": "Use a strong, slightly condensed sans-serif like **'Poppins'** or **'Bebas Neue'** (imported from Google Fonts) for titles and main menu items to give the app a confident, modern feel. `font-['Poppins'] font-bold`",
+    "body": "For all in-game UI text (player names, chip counts, action logs), use a highly-readable and clean sans-serif like **'Inter'**. Its excellent clarity at all sizes is perfect for dense information displays. Use `font-semibold` for chip counts and pot size to make them stand out. `font-['Inter']`"
+  }
+}

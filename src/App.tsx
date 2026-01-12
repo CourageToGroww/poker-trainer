@@ -1,5 +1,38 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 
+// --- Icon Component ---
+const iconMap: Record<string, string> = {
+  practice: '/icons/practice-icon.png',
+  fullgame: '/icons/fullgame-icon.png',
+  tutorial: '/icons/tutorial-icon.png',
+  interactive: '/icons/interactive-icon.png',
+  cards: '/icons/cards-icon.png',
+  chips: '/icons/chips-icon.png',
+  winner: '/icons/winner-icon.png',
+  fold: '/icons/fold-icon.png',
+  check: '/icons/check-icon.png',
+  raise: '/icons/raise-icon.png',
+  allin: '/icons/allin-icon.png',
+  position: '/icons/position-icon.png',
+};
+
+const PokerIcon: React.FC<{ name: string; className?: string; size?: number }> = ({
+  name,
+  className = '',
+  size = 24
+}) => {
+  const src = iconMap[name];
+  if (!src) return null;
+  return (
+    <img
+      src={src}
+      alt={name}
+      className={`inline-block ${className}`}
+      style={{ width: size, height: size }}
+    />
+  );
+};
+
 // --- Types & Interfaces ---
 
 type Suit = 'hearts' | 'diamonds' | 'clubs' | 'spades';
@@ -709,10 +742,13 @@ const Tutorial: React.FC<{ onExit: () => void }> = ({ onExit }) => {
       <div className="min-h-screen bg-gray-900 p-8">
         <div className="max-w-4xl mx-auto">
           <div className="flex items-center justify-between mb-8">
-            <h1 className="text-3xl font-bold text-white">📚 Poker Tutorial</h1>
+            <h1 className="text-3xl font-bold text-white flex items-center gap-3">
+              <PokerIcon name="tutorial" size={36} />
+              Poker Tutorial
+            </h1>
             <button
               onClick={onExit}
-              className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors"
+              className="px-4 py-2 bg-gradient-to-b from-gray-600 to-gray-800 hover:from-gray-500 hover:to-gray-700 text-white rounded-lg transition-all duration-200 transform hover:-translate-y-0.5 shadow-[0_2px_0_0_#1f2937,0_3px_6px_rgba(0,0,0,0.3)] hover:shadow-[0_1px_0_0_#1f2937] active:translate-y-0 active:shadow-[0_0px_0_0_#1f2937]"
             >
               ← Back to Menu
             </button>
@@ -761,7 +797,7 @@ const Tutorial: React.FC<{ onExit: () => void }> = ({ onExit }) => {
         <div className="flex items-center justify-between mb-6">
           <button
             onClick={() => setShowCategories(true)}
-            className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors"
+            className="px-4 py-2 bg-gradient-to-b from-gray-600 to-gray-800 hover:from-gray-500 hover:to-gray-700 text-white rounded-lg transition-all duration-200 transform hover:-translate-y-0.5 shadow-[0_2px_0_0_#1f2937,0_3px_6px_rgba(0,0,0,0.3)] hover:shadow-[0_1px_0_0_#1f2937] active:translate-y-0 active:shadow-[0_0px_0_0_#1f2937]"
           >
             ← Categories
           </button>
@@ -770,7 +806,7 @@ const Tutorial: React.FC<{ onExit: () => void }> = ({ onExit }) => {
           </div>
           <button
             onClick={onExit}
-            className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors"
+            className="px-4 py-2 bg-gradient-to-b from-gray-600 to-gray-800 hover:from-gray-500 hover:to-gray-700 text-white rounded-lg transition-all duration-200 transform hover:-translate-y-0.5 shadow-[0_2px_0_0_#1f2937,0_3px_6px_rgba(0,0,0,0.3)] hover:shadow-[0_1px_0_0_#1f2937] active:translate-y-0 active:shadow-[0_0px_0_0_#1f2937]"
           >
             Exit Tutorial
           </button>
@@ -803,7 +839,7 @@ const Tutorial: React.FC<{ onExit: () => void }> = ({ onExit }) => {
           <button
             onClick={() => setCurrentLessonIndex(Math.max(0, currentLessonIndex - 1))}
             disabled={currentLessonIndex === 0}
-            className="flex-1 px-6 py-3 bg-gray-700 hover:bg-gray-600 disabled:bg-gray-800 disabled:text-gray-600 text-white font-bold rounded-xl transition-colors"
+            className="flex-1 px-6 py-3 bg-gradient-to-b from-gray-600 to-gray-800 hover:from-gray-500 hover:to-gray-700 disabled:from-gray-800 disabled:to-gray-900 disabled:text-gray-600 text-white font-bold rounded-xl transition-all duration-200 transform hover:-translate-y-0.5 shadow-[0_3px_0_0_#1f2937,0_4px_8px_rgba(0,0,0,0.3)] hover:shadow-[0_1px_0_0_#1f2937] active:translate-y-0 active:shadow-[0_0px_0_0_#1f2937] disabled:shadow-none disabled:transform-none"
           >
             ← Previous
           </button>
@@ -833,6 +869,519 @@ const Tutorial: React.FC<{ onExit: () => void }> = ({ onExit }) => {
                 <span className="text-sm">{idx + 1}. {lesson.title}</span>
               </button>
             ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// --- Interactive Tutorial ---
+
+interface TutorialStage {
+  id: string;
+  title: string;
+  description: string;
+  setupHand: { playerCards: [Card, Card]; communityCards: Card[]; position: Position; pot: number; currentBet: number; street: Street };
+  steps: TutorialStep[];
+}
+
+interface TutorialStep {
+  message: string;
+  highlightArea?: 'cards' | 'position' | 'pot' | 'actions' | 'community' | 'odds';
+  waitForAction?: ActionType;
+  correctAction?: ActionType;
+  explanation?: string;
+  showPotOdds?: boolean;
+  showHandStrength?: boolean;
+}
+
+const INTERACTIVE_STAGES: TutorialStage[] = [
+  {
+    id: 'welcome',
+    title: 'Welcome to Poker!',
+    description: 'Let\'s learn the basics by playing actual hands.',
+    setupHand: {
+      playerCards: [{ rank: 'A', suit: 'spades' }, { rank: 'A', suit: 'hearts' }],
+      communityCards: [],
+      position: 'BTN',
+      pot: 75,
+      currentBet: 50,
+      street: 'preflop'
+    },
+    steps: [
+      { message: 'Welcome! This interactive tutorial will teach you Texas Hold\'em by playing real hands. Let\'s start!', highlightArea: 'cards' },
+      { message: 'You\'ve been dealt two cards - these are your HOLE CARDS. Only you can see them!', highlightArea: 'cards', showHandStrength: true },
+      { message: 'You have Pocket Aces (AA) - the BEST starting hand in poker! This happens about once every 221 hands.', highlightArea: 'cards' },
+      { message: 'You\'re on the BUTTON (BTN) - the best position! You act last after the flop, giving you maximum information.', highlightArea: 'position' },
+      { message: 'Someone has raised to $50. The pot is $75. With AA, you should RAISE to build the pot!', highlightArea: 'actions', waitForAction: 'raise', correctAction: 'raise' },
+      { message: 'Excellent! Raising with premium hands builds the pot and puts pressure on opponents. Let\'s continue!' }
+    ]
+  },
+  {
+    id: 'position',
+    title: 'Position Matters',
+    description: 'Learn why where you sit changes everything.',
+    setupHand: {
+      playerCards: [{ rank: 'K', suit: 'spades' }, { rank: 'Q', suit: 'spades' }],
+      communityCards: [],
+      position: 'UTG',
+      pot: 75,
+      currentBet: 50,
+      street: 'preflop'
+    },
+    steps: [
+      { message: 'Now you\'re Under The Gun (UTG) - the FIRST to act preflop. This is the toughest position!', highlightArea: 'position' },
+      { message: 'You have King-Queen suited (KQs) - a good hand, but NOT in early position with a raise to call.', highlightArea: 'cards', showHandStrength: true },
+      { message: 'In UTG, you need STRONGER hands because 7 players act after you. Any of them could have a monster!', highlightArea: 'position' },
+      { message: 'The correct play here is to FOLD. KQs isn\'t strong enough vs a raise from early position.', highlightArea: 'actions', waitForAction: 'fold', correctAction: 'fold' },
+      { message: 'Great discipline! Position awareness separates winners from losers. The same hand plays differently based on where you sit.' }
+    ]
+  },
+  {
+    id: 'pot-odds',
+    title: 'Pot Odds',
+    description: 'The math that makes poker profitable.',
+    setupHand: {
+      playerCards: [{ rank: '8', suit: 'hearts' }, { rank: '7', suit: 'hearts' }],
+      communityCards: [{ rank: 'A', suit: 'hearts' }, { rank: '3', suit: 'hearts' }, { rank: 'K', suit: 'clubs' }],
+      position: 'CO',
+      pot: 200,
+      currentBet: 100,
+      street: 'flop'
+    },
+    steps: [
+      { message: 'Now let\'s learn POT ODDS - the most important math concept in poker!', highlightArea: 'pot' },
+      { message: 'You have 8♥7♥ and the board shows A♥3♥K♣. You have a FLUSH DRAW - 4 hearts, need 1 more!', highlightArea: 'community', showHandStrength: true },
+      { message: 'With 9 hearts left in the deck, you have 9 OUTS. Using the Rule of 4, you have roughly 36% equity (9 × 4).', highlightArea: 'cards', showPotOdds: true },
+      { message: 'The pot is $200 and you need to call $100. Your POT ODDS are $100 / $300 = 33%.', highlightArea: 'pot', showPotOdds: true },
+      { message: 'Your equity (36%) > pot odds needed (33%). This is a PROFITABLE call! Math says CALL.', highlightArea: 'actions', waitForAction: 'call', correctAction: 'call' },
+      { message: 'Perfect! When your chance to win exceeds the price you\'re paying, CALL. This is how pros make money long-term.' }
+    ]
+  },
+  {
+    id: 'value-betting',
+    title: 'Value Betting',
+    description: 'Getting paid with strong hands.',
+    setupHand: {
+      playerCards: [{ rank: 'A', suit: 'diamonds' }, { rank: 'K', suit: 'diamonds' }],
+      communityCards: [{ rank: 'A', suit: 'clubs' }, { rank: '7', suit: 'hearts' }, { rank: '2', suit: 'spades' }, { rank: '9', suit: 'clubs' }],
+      position: 'BTN',
+      pot: 150,
+      currentBet: 0,
+      street: 'turn'
+    },
+    steps: [
+      { message: 'Time to learn VALUE BETTING - extracting money from worse hands!', highlightArea: 'pot' },
+      { message: 'You have AK on a board of A-7-2-9. You have TOP PAIR with TOP KICKER - a very strong hand!', highlightArea: 'cards', showHandStrength: true },
+      { message: 'Your opponent checked. This is your chance to bet for VALUE - to get called by worse hands like A-Q, A-J, or smaller pairs.', highlightArea: 'community' },
+      { message: 'If you check, you win nothing extra. If you bet, worse hands might call. RAISE to bet for value!', highlightArea: 'actions', waitForAction: 'raise', correctAction: 'raise' },
+      { message: 'Excellent! Betting 50-75% of the pot is standard for value. You want calls from worse hands, not folds!' }
+    ]
+  },
+  {
+    id: 'bluffing',
+    title: 'Bluffing',
+    description: 'Making opponents fold better hands.',
+    setupHand: {
+      playerCards: [{ rank: '6', suit: 'spades' }, { rank: '5', suit: 'spades' }],
+      communityCards: [{ rank: 'A', suit: 'hearts' }, { rank: 'K', suit: 'hearts' }, { rank: '3', suit: 'clubs' }, { rank: '9', suit: 'diamonds' }, { rank: '2', suit: 'hearts' }],
+      position: 'BTN',
+      pot: 300,
+      currentBet: 0,
+      street: 'river'
+    },
+    steps: [
+      { message: 'Now for the exciting part - BLUFFING! Making your opponent fold a better hand.', highlightArea: 'cards' },
+      { message: 'You have 6-5 suited - complete air (nothing). But you\'ve been betting this hand aggressively...', highlightArea: 'cards', showHandStrength: true },
+      { message: 'The board is A♥K♥3♣9♦2♥. Three hearts on board means the flush completed. You DON\'T have it, but you can REPRESENT it!', highlightArea: 'community' },
+      { message: 'Your opponent checked. A big bet here tells a story: "I have the flush." If they believe you, they\'ll fold!', highlightArea: 'actions' },
+      { message: 'RAISE (bluff)! Bet big like you have the flush. About 75-100% of the pot sells the story.', highlightArea: 'actions', waitForAction: 'raise', correctAction: 'raise' },
+      { message: 'Bold! Bluffing is essential - if you never bluff, opponents will only call when they beat you. Balance is key!' }
+    ]
+  },
+  {
+    id: 'folding',
+    title: 'Knowing When to Fold',
+    description: 'Saving money is making money.',
+    setupHand: {
+      playerCards: [{ rank: 'Q', suit: 'clubs' }, { rank: 'Q', suit: 'diamonds' }],
+      communityCards: [{ rank: 'A', suit: 'spades' }, { rank: 'A', suit: 'hearts' }, { rank: 'K', suit: 'clubs' }, { rank: '7', suit: 'diamonds' }],
+      position: 'MP',
+      pot: 500,
+      currentBet: 400,
+      street: 'turn'
+    },
+    steps: [
+      { message: 'Perhaps the hardest lesson: knowing when to FOLD a good hand.', highlightArea: 'cards' },
+      { message: 'You have Queens (QQ) - normally a great hand! But look at this board...', highlightArea: 'cards', showHandStrength: true },
+      { message: 'The board shows A♠A♥K♣7♦. Your opponent just bet $400 into a $500 pot (80% pot bet).', highlightArea: 'community' },
+      { message: 'They\'re representing at least an Ace or a King. Your Queens are now just a bluff-catcher.', highlightArea: 'pot' },
+      { message: 'The math doesn\'t work. You need 44% equity but likely have much less. FOLD and save $400!', highlightArea: 'actions', waitForAction: 'fold', correctAction: 'fold' },
+      { message: 'Wise decision! Folding strong hands when beat is what separates winning players from losers. Your QQ was simply second-best here.' }
+    ]
+  },
+  {
+    id: 'c-betting',
+    title: 'Continuation Betting',
+    description: 'Following up preflop aggression.',
+    setupHand: {
+      playerCards: [{ rank: 'A', suit: 'clubs' }, { rank: 'J', suit: 'clubs' }],
+      communityCards: [{ rank: '8', suit: 'hearts' }, { rank: '4', suit: 'diamonds' }, { rank: '2', suit: 'spades' }],
+      position: 'CO',
+      pot: 120,
+      currentBet: 0,
+      street: 'flop'
+    },
+    steps: [
+      { message: 'Let\'s learn the C-BET (Continuation Bet) - one of the most common plays in poker.', highlightArea: 'pot' },
+      { message: 'You raised preflop with AJ suited. You were the aggressor and your opponent called.', highlightArea: 'cards', showHandStrength: true },
+      { message: 'The flop is 8♥4♦2♠. You MISSED completely - no pair, no draw. But your opponent doesn\'t know that!', highlightArea: 'community' },
+      { message: 'This dry board (no draws) is PERFECT for a c-bet. It likely missed your opponent too!', highlightArea: 'community' },
+      { message: 'By betting, you represent strength and can win the pot right here. RAISE to c-bet!', highlightArea: 'actions', waitForAction: 'raise', correctAction: 'raise' },
+      { message: 'Great c-bet! On dry boards, c-betting works ~60%+ of the time. When opponents fold, you win without a showdown!' }
+    ]
+  },
+  {
+    id: 'check-raise',
+    title: 'The Check-Raise',
+    description: 'A powerful trapping play.',
+    setupHand: {
+      playerCards: [{ rank: 'J', suit: 'spades' }, { rank: 'J', suit: 'hearts' }],
+      communityCards: [{ rank: 'J', suit: 'diamonds' }, { rank: '6', suit: 'clubs' }, { rank: '2', suit: 'hearts' }],
+      position: 'BB',
+      pot: 80,
+      currentBet: 0,
+      street: 'flop'
+    },
+    steps: [
+      { message: 'Time for a tricky play - the CHECK-RAISE!', highlightArea: 'cards' },
+      { message: 'You have JJ and flopped a SET (three of a kind)! This is a monster hand.', highlightArea: 'cards', showHandStrength: true },
+      { message: 'You\'re in the Big Blind. If you bet out, aggressive opponents might fold. But if you CHECK...', highlightArea: 'position' },
+      { message: 'Your opponent will likely c-bet, thinking you\'re weak. Then you can RAISE and trap them!', highlightArea: 'actions' },
+      { message: 'For now, CHECK to set the trap. (In the full game, you\'d then raise their bet!)', highlightArea: 'actions', waitForAction: 'check', correctAction: 'check' },
+      { message: 'Perfect trap! Check-raising with monsters extracts maximum value. They\'ve put money in, now they\'re pot-committed!' }
+    ]
+  }
+];
+
+const InteractiveTutorial: React.FC<{ onExit: () => void }> = ({ onExit }) => {
+  const [currentStageIndex, setCurrentStageIndex] = useState(0);
+  const [currentStepIndex, setCurrentStepIndex] = useState(0);
+  const [showingResult, setShowingResult] = useState(false);
+  const [playerAction, setPlayerAction] = useState<ActionType | null>(null);
+  const [showStageSelect, setShowStageSelect] = useState(true);
+  const [completedStages, setCompletedStages] = useState<Set<string>>(new Set());
+
+  const currentStage = INTERACTIVE_STAGES[currentStageIndex];
+  const currentStep = currentStage.steps[currentStepIndex];
+  const isWaitingForAction = currentStep.waitForAction && !playerAction;
+  const isLastStep = currentStepIndex === currentStage.steps.length - 1;
+
+  const handleAction = (action: ActionType) => {
+    if (!isWaitingForAction) return;
+    setPlayerAction(action);
+    setShowingResult(true);
+  };
+
+  const handleNext = () => {
+    if (showingResult) {
+      setShowingResult(false);
+      setPlayerAction(null);
+    }
+    
+    if (isLastStep) {
+      setCompletedStages(prev => new Set([...prev, currentStage.id]));
+      if (currentStageIndex < INTERACTIVE_STAGES.length - 1) {
+        setCurrentStageIndex(currentStageIndex + 1);
+        setCurrentStepIndex(0);
+        setShowStageSelect(true);
+      } else {
+        setShowStageSelect(true);
+      }
+    } else {
+      setCurrentStepIndex(currentStepIndex + 1);
+    }
+  };
+
+  const startStage = (index: number) => {
+    setCurrentStageIndex(index);
+    setCurrentStepIndex(0);
+    setPlayerAction(null);
+    setShowingResult(false);
+    setShowStageSelect(false);
+  };
+
+  const getSuitColor = (suit: Suit) => {
+    return suit === 'hearts' || suit === 'diamonds' ? 'text-red-500' : 'text-gray-900';
+  };
+
+  const getSuitSymbol = (suit: Suit) => {
+    const symbols: Record<Suit, string> = { hearts: '♥', diamonds: '♦', clubs: '♣', spades: '♠' };
+    return symbols[suit];
+  };
+
+  const renderCard = (card: Card, large = false) => (
+    <div className={`${large ? 'w-16 h-24' : 'w-12 h-18'} bg-white rounded-lg shadow-lg flex flex-col items-center justify-center border-2 border-gray-300`}>
+      <span className={`${large ? 'text-2xl' : 'text-lg'} font-bold ${getSuitColor(card.suit)}`}>{card.rank}</span>
+      <span className={`${large ? 'text-3xl' : 'text-2xl'} ${getSuitColor(card.suit)}`}>{getSuitSymbol(card.suit)}</span>
+    </div>
+  );
+
+  // Stage Selection Screen
+  if (showStageSelect) {
+    return (
+      <div className="min-h-screen bg-gray-900 p-4 md:p-8">
+        <div className="max-w-4xl mx-auto">
+          <div className="flex items-center justify-between mb-8">
+            <h1 className="text-3xl font-bold text-white flex items-center gap-3">
+              <PokerIcon name="interactive" size={36} />
+              Interactive Poker Tutorial
+            </h1>
+            <button onClick={onExit} className="px-4 py-2 bg-gradient-to-b from-gray-600 to-gray-800 hover:from-gray-500 hover:to-gray-700 text-white rounded-lg transition-all duration-200 transform hover:-translate-y-0.5 shadow-[0_2px_0_0_#1f2937,0_3px_6px_rgba(0,0,0,0.3)] hover:shadow-[0_1px_0_0_#1f2937] active:translate-y-0 active:shadow-[0_0px_0_0_#1f2937]">
+              ← Back to Menu
+            </button>
+          </div>
+          
+          <p className="text-gray-400 mb-6">Learn by playing! Each lesson puts you in a real poker situation with guidance.</p>
+          
+          <div className="grid gap-4">
+            {INTERACTIVE_STAGES.map((stage, idx) => (
+              <button
+                key={stage.id}
+                onClick={() => startStage(idx)}
+                className={`p-4 rounded-xl text-left transition-all ${
+                  completedStages.has(stage.id)
+                    ? 'bg-green-900/30 border-2 border-green-600 hover:bg-green-900/50'
+                    : 'bg-gray-800 border-2 border-gray-600 hover:border-yellow-500'
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="flex items-center gap-3">
+                      <span className="text-2xl">{completedStages.has(stage.id) ? '✅' : `${idx + 1}.`}</span>
+                      <h3 className="text-xl font-bold text-white">{stage.title}</h3>
+                    </div>
+                    <p className="text-gray-400 mt-1 ml-10">{stage.description}</p>
+                  </div>
+                  <span className="text-yellow-400 text-2xl">→</span>
+                </div>
+              </button>
+            ))}
+          </div>
+          
+          <div className="mt-8 p-4 bg-gray-800 rounded-xl border border-gray-700">
+            <div className="flex items-center justify-between">
+              <div>
+                <span className="text-gray-400">Progress: </span>
+                <span className="text-white font-bold">{completedStages.size} / {INTERACTIVE_STAGES.length} lessons completed</span>
+              </div>
+              {completedStages.size === INTERACTIVE_STAGES.length && (
+                <span className="text-yellow-400 font-bold flex items-center gap-2">
+                  <PokerIcon name="winner" size={20} />
+                  Tutorial Complete!
+                </span>
+              )}
+            </div>
+            <div className="w-full h-2 bg-gray-700 rounded-full mt-2">
+              <div 
+                className="h-full bg-green-500 rounded-full transition-all"
+                style={{ width: `${(completedStages.size / INTERACTIVE_STAGES.length) * 100}%` }}
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-900 flex flex-col">
+      {/* Header */}
+      <div className="bg-gray-800 p-4 border-b border-gray-700">
+        <div className="max-w-4xl mx-auto flex items-center justify-between">
+          <div>
+            <h2 className="text-xl font-bold text-white">{currentStage.title}</h2>
+            <p className="text-sm text-gray-400">Step {currentStepIndex + 1} of {currentStage.steps.length}</p>
+          </div>
+          <button onClick={() => setShowStageSelect(true)} className="px-4 py-2 bg-gradient-to-b from-gray-600 to-gray-800 hover:from-gray-500 hover:to-gray-700 text-white rounded-lg text-sm transition-all duration-200 transform hover:-translate-y-0.5 shadow-[0_2px_0_0_#1f2937,0_3px_6px_rgba(0,0,0,0.3)] hover:shadow-[0_1px_0_0_#1f2937] active:translate-y-0 active:shadow-[0_0px_0_0_#1f2937]">
+            All Lessons
+          </button>
+        </div>
+      </div>
+
+      {/* Game Area */}
+      <div className="flex-1 flex flex-col items-center justify-center p-4">
+        {/* Table Representation */}
+        <div className="relative w-full max-w-2xl aspect-[2/1] bg-green-800 rounded-[100px] border-8 border-green-900 shadow-2xl mb-6">
+          {/* Position Indicator */}
+          <div className={`absolute bottom-4 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full text-sm font-bold ${
+            currentStep.highlightArea === 'position' ? 'bg-yellow-500 text-black animate-pulse' : 'bg-gray-800 text-white'
+          }`}>
+            Your Position: {currentStage.setupHand.position}
+          </div>
+
+          {/* Community Cards */}
+          <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex gap-2 ${
+            currentStep.highlightArea === 'community' ? 'ring-4 ring-yellow-500 ring-offset-4 ring-offset-green-800 rounded-lg p-2' : ''
+          }`}>
+            {currentStage.setupHand.communityCards.length > 0 ? (
+              currentStage.setupHand.communityCards.map((card, idx) => (
+                <div key={idx}>{renderCard(card)}</div>
+              ))
+            ) : (
+              <div className="text-gray-400 italic">No community cards yet (Preflop)</div>
+            )}
+          </div>
+
+          {/* Pot */}
+          <div className={`absolute top-4 left-1/2 -translate-x-1/2 px-4 py-2 rounded-lg ${
+            currentStep.highlightArea === 'pot' ? 'bg-yellow-500 text-black animate-pulse' : 'bg-black/50 text-white'
+          }`}>
+            <span className="font-bold">Pot: ${currentStage.setupHand.pot}</span>
+            {currentStage.setupHand.currentBet > 0 && (
+              <span className="ml-3 text-sm">To Call: ${currentStage.setupHand.currentBet}</span>
+            )}
+          </div>
+
+          {/* Street Indicator */}
+          <div className="absolute top-4 right-4 px-3 py-1 bg-blue-600 text-white rounded-full text-sm font-bold uppercase">
+            {currentStage.setupHand.street}
+          </div>
+        </div>
+
+        {/* Player Cards */}
+        <div className={`flex gap-4 mb-6 p-4 rounded-xl ${
+          currentStep.highlightArea === 'cards' ? 'ring-4 ring-yellow-500 bg-gray-800/50' : ''
+        }`}>
+          <div className="text-center">
+            <p className="text-gray-400 text-sm mb-2">Your Cards</p>
+            <div className="flex gap-2">
+              {currentStage.setupHand.playerCards.map((card, idx) => (
+                <div key={idx}>{renderCard(card, true)}</div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Hand Strength Indicator */}
+        {currentStep.showHandStrength && (
+          <div className="mb-4 px-4 py-2 bg-blue-900/50 border border-blue-500 rounded-lg">
+            <span className="text-blue-300">Hand Strength: </span>
+            <span className="text-white font-bold">
+              {currentStage.setupHand.playerCards[0].rank === currentStage.setupHand.playerCards[1].rank
+                ? `Pair of ${currentStage.setupHand.playerCards[0].rank}s`
+                : `${currentStage.setupHand.playerCards[0].rank}${currentStage.setupHand.playerCards[1].rank}${
+                    currentStage.setupHand.playerCards[0].suit === currentStage.setupHand.playerCards[1].suit ? ' suited' : ''
+                  }`}
+            </span>
+          </div>
+        )}
+
+        {/* Pot Odds Display */}
+        {currentStep.showPotOdds && (
+          <div className="mb-4 px-4 py-2 bg-purple-900/50 border border-purple-500 rounded-lg">
+            <span className="text-purple-300">Pot Odds: </span>
+            <span className="text-white font-bold">
+              ${currentStage.setupHand.currentBet} to win ${currentStage.setupHand.pot + currentStage.setupHand.currentBet} = {Math.round((currentStage.setupHand.currentBet / (currentStage.setupHand.pot + currentStage.setupHand.currentBet * 2)) * 100)}% needed
+            </span>
+          </div>
+        )}
+
+        {/* Action Buttons */}
+        {isWaitingForAction && !showingResult && (
+          <div className={`flex gap-4 mb-6 ${currentStep.highlightArea === 'actions' ? 'animate-pulse' : ''}`}>
+            <button
+              onClick={() => handleAction('fold')}
+              className={`px-6 py-3 rounded-xl font-bold transition-all duration-200 transform hover:-translate-y-0.5 active:translate-y-0 ${
+                currentStep.correctAction === 'fold'
+                  ? 'bg-gradient-to-b from-gray-500 to-gray-700 text-white ring-2 ring-yellow-400 shadow-[0_3px_0_0_#374151,0_4px_8px_rgba(0,0,0,0.3)]'
+                  : 'bg-gradient-to-b from-gray-600 to-gray-800 hover:from-gray-500 hover:to-gray-700 text-white shadow-[0_3px_0_0_#1f2937,0_4px_8px_rgba(0,0,0,0.3)] hover:shadow-[0_1px_0_0_#1f2937]'
+              }`}
+            >
+              Fold
+            </button>
+            {currentStage.setupHand.currentBet === 0 ? (
+              <button
+                onClick={() => handleAction('check')}
+                className={`px-6 py-3 rounded-xl font-bold transition-all duration-200 transform hover:-translate-y-0.5 active:translate-y-0 ${
+                  currentStep.correctAction === 'check'
+                    ? 'bg-gradient-to-b from-sky-500 to-sky-700 text-white ring-2 ring-yellow-400 shadow-[0_3px_0_0_#0369a1,0_4px_8px_rgba(0,0,0,0.3)]'
+                    : 'bg-gradient-to-b from-sky-600 to-sky-800 hover:from-sky-500 hover:to-sky-700 text-white shadow-[0_3px_0_0_#075985,0_4px_8px_rgba(0,0,0,0.3)] hover:shadow-[0_1px_0_0_#075985]'
+                }`}
+              >
+                Check
+              </button>
+            ) : (
+              <button
+                onClick={() => handleAction('call')}
+                className={`px-6 py-3 rounded-xl font-bold transition-all duration-200 transform hover:-translate-y-0.5 active:translate-y-0 ${
+                  currentStep.correctAction === 'call'
+                    ? 'bg-gradient-to-b from-sky-500 to-sky-700 text-white ring-2 ring-yellow-400 shadow-[0_3px_0_0_#0369a1,0_4px_8px_rgba(0,0,0,0.3)]'
+                    : 'bg-gradient-to-b from-sky-600 to-sky-800 hover:from-sky-500 hover:to-sky-700 text-white shadow-[0_3px_0_0_#075985,0_4px_8px_rgba(0,0,0,0.3)] hover:shadow-[0_1px_0_0_#075985]'
+                }`}
+              >
+                Call ${currentStage.setupHand.currentBet}
+              </button>
+            )}
+            <button
+              onClick={() => handleAction('raise')}
+              className={`px-6 py-3 rounded-xl font-bold transition-all duration-200 transform hover:-translate-y-0.5 active:translate-y-0 ${
+                currentStep.correctAction === 'raise'
+                  ? 'bg-gradient-to-b from-amber-400 to-amber-600 text-gray-900 ring-2 ring-yellow-400 shadow-[0_3px_0_0_#b45309,0_4px_8px_rgba(0,0,0,0.3)]'
+                  : 'bg-gradient-to-b from-amber-500 to-amber-700 hover:from-amber-400 hover:to-amber-600 text-gray-900 shadow-[0_3px_0_0_#92400e,0_4px_8px_rgba(0,0,0,0.3)] hover:shadow-[0_1px_0_0_#92400e]'
+              }`}
+            >
+              Raise
+            </button>
+          </div>
+        )}
+
+        {/* Result Feedback */}
+        {showingResult && (
+          <div className={`mb-6 p-4 rounded-xl max-w-lg text-center ${
+            playerAction === currentStep.correctAction ? 'bg-green-900/50 border-2 border-green-500' : 'bg-yellow-900/50 border-2 border-yellow-500'
+          }`}>
+            {playerAction === currentStep.correctAction ? (
+              <>
+                <span className="text-3xl">✅</span>
+                <p className="text-green-400 font-bold mt-2">Correct!</p>
+              </>
+            ) : (
+              <>
+                <span className="text-3xl">💡</span>
+                <p className="text-yellow-400 font-bold mt-2">
+                  The optimal play was to {currentStep.correctAction}
+                </p>
+              </>
+            )}
+            {currentStep.explanation && <p className="text-gray-300 mt-2">{currentStep.explanation}</p>}
+          </div>
+        )}
+
+        {/* Message Box */}
+        <div className="bg-gray-800 border-2 border-gray-600 rounded-xl p-6 max-w-lg text-center">
+          <p className="text-white text-lg leading-relaxed">{currentStep.message}</p>
+          
+          {(!isWaitingForAction || showingResult) && (
+            <button
+              onClick={handleNext}
+              className="mt-4 px-8 py-3 bg-yellow-600 hover:bg-yellow-500 text-black font-bold rounded-lg transition-all"
+            >
+              {isLastStep ? 'Complete Lesson →' : 'Continue →'}
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Progress Bar */}
+      <div className="bg-gray-800 p-4 border-t border-gray-700">
+        <div className="max-w-4xl mx-auto">
+          <div className="w-full h-2 bg-gray-700 rounded-full">
+            <div 
+              className="h-full bg-yellow-500 rounded-full transition-all"
+              style={{ width: `${((currentStepIndex + 1) / currentStage.steps.length) * 100}%` }}
+            />
           </div>
         </div>
       </div>
@@ -972,7 +1521,7 @@ const ActionControls: React.FC<{
   ];
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 bg-gray-900 border-t border-gray-800 p-3 z-50">
+    <div className="fixed bottom-0 left-0 right-0 bg-gradient-to-t from-gray-900 via-gray-900 to-gray-900/95 border-t border-gray-700/50 p-4 z-50 backdrop-blur-sm">
       <div className="max-w-4xl mx-auto flex flex-col gap-3">
         {/* Raise presets */}
         <div className="flex justify-center gap-2 flex-wrap">
@@ -981,7 +1530,11 @@ const ActionControls: React.FC<{
               key={preset.label}
               onClick={() => setRaiseAmount(Math.min(Math.max(preset.amount, minRaise), maxRaise))}
               disabled={disabled}
-              className="px-3 py-1 text-xs bg-gray-700 hover:bg-gray-600 disabled:bg-gray-800 disabled:text-gray-500 text-white rounded transition-colors"
+              className={`px-4 py-1.5 text-xs font-medium rounded-lg transition-all duration-200 transform hover:-translate-y-0.5 active:translate-y-0 ${
+                preset.label === 'All-In'
+                  ? 'bg-gradient-to-b from-red-500 to-red-700 hover:from-red-400 hover:to-red-600 disabled:from-gray-700 disabled:to-gray-800 disabled:text-gray-500 text-white shadow-[0_2px_0_0_#991b1b,0_3px_6px_rgba(0,0,0,0.3)] hover:shadow-[0_1px_0_0_#991b1b] active:shadow-[0_0px_0_0_#991b1b] disabled:shadow-none disabled:transform-none'
+                  : 'bg-gradient-to-b from-gray-600 to-gray-800 hover:from-gray-500 hover:to-gray-700 disabled:from-gray-700 disabled:to-gray-800 disabled:text-gray-500 text-white shadow-[0_2px_0_0_#1f2937,0_3px_6px_rgba(0,0,0,0.3)] hover:shadow-[0_1px_0_0_#1f2937] active:shadow-[0_0px_0_0_#1f2937] disabled:shadow-none disabled:transform-none'
+              }`}
             >
               {preset.label}
             </button>
@@ -1007,11 +1560,11 @@ const ActionControls: React.FC<{
           </div>
 
           {/* Action Buttons */}
-          <div className="flex gap-2">
+          <div className="flex gap-3">
             <button
               onClick={onFold}
               disabled={disabled}
-              className="px-5 py-2 rounded-lg bg-red-600 hover:bg-red-700 disabled:bg-gray-700 disabled:text-gray-500 text-white font-bold shadow-lg transition-colors"
+              className="px-5 py-2.5 rounded-xl bg-gradient-to-b from-gray-500 to-gray-700 hover:from-gray-400 hover:to-gray-600 disabled:from-gray-700 disabled:to-gray-800 disabled:text-gray-500 text-white font-semibold transition-all duration-200 transform hover:-translate-y-0.5 shadow-[0_3px_0_0_#374151,0_4px_8px_rgba(0,0,0,0.3)] hover:shadow-[0_1px_0_0_#374151,0_2px_4px_rgba(0,0,0,0.3)] active:translate-y-0.5 active:shadow-[0_0px_0_0_#374151] disabled:shadow-none disabled:transform-none"
             >
               Fold
             </button>
@@ -1020,7 +1573,7 @@ const ActionControls: React.FC<{
               <button
                 onClick={onCheck}
                 disabled={disabled}
-                className="px-5 py-2 rounded-lg bg-gray-600 hover:bg-gray-500 disabled:bg-gray-700 disabled:text-gray-500 text-white font-bold shadow-lg transition-colors"
+                className="px-5 py-2.5 rounded-xl bg-gradient-to-b from-sky-500 to-sky-700 hover:from-sky-400 hover:to-sky-600 disabled:from-gray-700 disabled:to-gray-800 disabled:text-gray-500 text-white font-semibold transition-all duration-200 transform hover:-translate-y-0.5 shadow-[0_3px_0_0_#0369a1,0_4px_8px_rgba(0,0,0,0.3)] hover:shadow-[0_1px_0_0_#0369a1,0_2px_4px_rgba(0,0,0,0.3)] active:translate-y-0.5 active:shadow-[0_0px_0_0_#0369a1] disabled:shadow-none disabled:transform-none"
               >
                 Check
               </button>
@@ -1028,7 +1581,7 @@ const ActionControls: React.FC<{
               <button
                 onClick={onCall}
                 disabled={disabled}
-                className="px-5 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 disabled:bg-gray-700 disabled:text-gray-500 text-white font-bold shadow-lg transition-colors"
+                className="px-5 py-2.5 rounded-xl bg-gradient-to-b from-sky-500 to-sky-700 hover:from-sky-400 hover:to-sky-600 disabled:from-gray-700 disabled:to-gray-800 disabled:text-gray-500 text-white font-semibold transition-all duration-200 transform hover:-translate-y-0.5 shadow-[0_3px_0_0_#0369a1,0_4px_8px_rgba(0,0,0,0.3)] hover:shadow-[0_1px_0_0_#0369a1,0_2px_4px_rgba(0,0,0,0.3)] active:translate-y-0.5 active:shadow-[0_0px_0_0_#0369a1] disabled:shadow-none disabled:transform-none"
               >
                 Call ${callAmount}
               </button>
@@ -1037,7 +1590,7 @@ const ActionControls: React.FC<{
             <button
               onClick={() => onRaise(raiseAmount)}
               disabled={disabled}
-              className="px-5 py-2 rounded-lg bg-green-600 hover:bg-green-700 disabled:bg-gray-700 disabled:text-gray-500 text-white font-bold shadow-lg transition-colors min-w-[100px]"
+              className="px-6 py-2.5 rounded-xl bg-gradient-to-b from-amber-400 to-amber-600 hover:from-amber-300 hover:to-amber-500 disabled:from-gray-700 disabled:to-gray-800 disabled:text-gray-500 text-gray-900 font-bold transition-all duration-200 transform hover:-translate-y-0.5 shadow-[0_3px_0_0_#b45309,0_4px_8px_rgba(0,0,0,0.3)] hover:shadow-[0_1px_0_0_#b45309,0_2px_4px_rgba(0,0,0,0.3)] active:translate-y-0.5 active:shadow-[0_0px_0_0_#b45309] disabled:shadow-none disabled:transform-none min-w-[120px]"
             >
               Raise ${raiseAmount}
             </button>
@@ -1238,7 +1791,7 @@ const ActionLog: React.FC<{
       {optimalPlay && (
         <div className="border-t border-green-700 p-3 bg-green-900/30">
           <div className="text-green-400 text-xs font-bold mb-2 flex items-center gap-1">
-            🎯 OPTIMAL PLAY NOW ({optimalPlay.position})
+            <span className="flex items-center gap-1"><PokerIcon name="practice" size={16} /> OPTIMAL PLAY NOW ({optimalPlay.position})</span>
           </div>
           <div className="text-white text-sm font-bold mb-2 leading-snug">
             {optimalPlay.recommendation}
@@ -1290,7 +1843,9 @@ const ActionLog: React.FC<{
       {/* Position Strategy Tip */}
       {expanded && (
         <div className="border-t border-gray-700 p-2 bg-gray-900/50">
-          <div className="text-yellow-400 text-xs font-bold mb-1">📍 Position Strategy ({optimalPlay?.position || 'General'}):</div>
+          <div className="text-yellow-400 text-xs font-bold mb-1 flex items-center gap-1">
+            <PokerIcon name="position" size={14} /> Position Strategy ({optimalPlay?.position || 'General'}):
+          </div>
           <div className="text-gray-300 text-xs leading-relaxed">{positionTip}</div>
         </div>
       )}
@@ -1353,6 +1908,7 @@ const PokerTable: React.FC = () => {
 
   const [gameStarted, setGameStarted] = useState(false);
   const [tutorialMode, setTutorialMode] = useState(false);
+  const [interactiveTutorial, setInteractiveTutorial] = useState(false);
   const [replayMode, setReplayMode] = useState(false);
   const [showAllHands, setShowAllHands] = useState(false);
   const [logsExpanded, setLogsExpanded] = useState(false);
@@ -2256,6 +2812,11 @@ const PokerTable: React.FC = () => {
   const callAmount = userPlayer ? gameState.currentBet - userPlayer.currentBet : 0;
   const canCheck = callAmount === 0;
 
+  // Show interactive tutorial if active
+  if (interactiveTutorial) {
+    return <InteractiveTutorial onExit={() => setInteractiveTutorial(false)} />;
+  }
+
   // Show tutorial if in tutorial mode
   if (tutorialMode) {
     return <Tutorial onExit={() => setTutorialMode(false)} />;
@@ -2265,33 +2826,43 @@ const PokerTable: React.FC = () => {
     <div className="min-h-screen bg-gray-900 flex flex-col items-center justify-center p-4 pb-36 overflow-hidden">
       {/* Start Screen */}
       {!gameStarted && (
-        <div className="absolute inset-0 bg-black/80 flex items-center justify-center z-50">
-          <div className="bg-gray-800 p-8 rounded-xl border border-gray-600 text-center">
-            <h1 className="text-3xl font-bold text-white mb-4">Texas Hold'em Trainer</h1>
-            <p className="text-gray-400 mb-6">Learn to play like a pro with GTO-based AI opponents</p>
-            <div className="flex flex-col gap-3">
+        <div className="absolute inset-0 bg-gradient-to-br from-gray-900 via-gray-800 to-emerald-900/30 flex items-center justify-center z-50">
+          <div className="bg-gray-800/90 backdrop-blur-sm p-10 rounded-2xl border border-emerald-700/50 text-center shadow-2xl shadow-emerald-900/20 max-w-md">
+            <div className="mb-6">
+              <h1 className="text-4xl font-bold text-white mb-2 tracking-tight">Texas Hold'em</h1>
+              <h2 className="text-2xl font-semibold text-emerald-400">Trainer</h2>
+            </div>
+            <p className="text-gray-400 mb-8">Learn to play like a pro with GTO-based AI opponents</p>
+            <div className="flex flex-col gap-4">
               <button
                 onClick={() => startNewGame(false)}
-                className="px-8 py-3 bg-green-600 hover:bg-green-700 text-white font-bold rounded-lg text-lg transition-colors"
+                className="px-8 py-4 bg-gradient-to-b from-emerald-500 to-emerald-700 hover:from-emerald-400 hover:to-emerald-600 text-white font-bold rounded-xl text-lg transition-all duration-200 transform hover:-translate-y-0.5 shadow-[0_4px_0_0_#065f46,0_6px_12px_rgba(0,0,0,0.3)] hover:shadow-[0_2px_0_0_#065f46,0_4px_8px_rgba(0,0,0,0.3)] active:translate-y-0.5 active:shadow-[0_1px_0_0_#065f46]"
               >
                 Practice Mode
               </button>
-              <p className="text-gray-500 text-xs">Play individual hands with fresh chips each time</p>
+              <p className="text-gray-500 text-xs -mt-2">Play individual hands with fresh chips each time</p>
               <button
                 onClick={() => startNewGame(true)}
-                className="px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg text-lg transition-colors"
+                className="px-8 py-4 bg-gradient-to-b from-blue-500 to-blue-700 hover:from-blue-400 hover:to-blue-600 text-white font-bold rounded-xl text-lg transition-all duration-200 transform hover:-translate-y-0.5 shadow-[0_4px_0_0_#1e40af,0_6px_12px_rgba(0,0,0,0.3)] hover:shadow-[0_2px_0_0_#1e40af,0_4px_8px_rgba(0,0,0,0.3)] active:translate-y-0.5 active:shadow-[0_1px_0_0_#1e40af]"
               >
                 Full Game
               </button>
-              <p className="text-gray-500 text-xs">Play until one player has all the chips</p>
-              <div className="border-t border-gray-600 my-3"></div>
+              <p className="text-gray-500 text-xs -mt-2">Play until one player has all the chips</p>
+              <div className="border-t border-gray-600/50 my-4"></div>
               <button
                 onClick={() => setTutorialMode(true)}
-                className="px-8 py-3 bg-yellow-600 hover:bg-yellow-500 text-black font-bold rounded-lg text-lg transition-colors"
+                className="px-8 py-4 bg-gradient-to-b from-amber-400 to-amber-600 hover:from-amber-300 hover:to-amber-500 text-gray-900 font-bold rounded-xl text-lg transition-all duration-200 transform hover:-translate-y-0.5 shadow-[0_4px_0_0_#b45309,0_6px_12px_rgba(0,0,0,0.3)] hover:shadow-[0_2px_0_0_#b45309,0_4px_8px_rgba(0,0,0,0.3)] active:translate-y-0.5 active:shadow-[0_1px_0_0_#b45309]"
               >
-                📚 Tutorial
+                Tutorial
               </button>
-              <p className="text-gray-500 text-xs">Learn Texas Hold'em from scratch</p>
+              <p className="text-gray-500 text-xs -mt-2">Learn Texas Hold'em from scratch</p>
+              <button
+                onClick={() => setInteractiveTutorial(true)}
+                className="px-8 py-4 bg-gradient-to-b from-purple-500 to-purple-700 hover:from-purple-400 hover:to-purple-600 text-white font-bold rounded-xl text-lg transition-all duration-200 transform hover:-translate-y-0.5 shadow-[0_4px_0_0_#581c87,0_6px_12px_rgba(0,0,0,0.3)] hover:shadow-[0_2px_0_0_#581c87,0_4px_8px_rgba(0,0,0,0.3)] active:translate-y-0.5 active:shadow-[0_1px_0_0_#581c87]"
+              >
+                Interactive Tutorial
+              </button>
+              <p className="text-gray-500 text-xs -mt-2">Learn by playing guided hands</p>
             </div>
           </div>
         </div>
@@ -2299,20 +2870,23 @@ const PokerTable: React.FC = () => {
 
       {/* Game Winner Overlay */}
       {gameWinner && (
-        <div className="absolute inset-0 bg-black/90 flex items-center justify-center z-50">
-          <div className="bg-gray-800 p-8 rounded-xl border border-yellow-500 text-center">
-            <h1 className="text-4xl font-bold text-yellow-400 mb-4">🏆 Game Over!</h1>
-            <p className="text-2xl text-white mb-6">{gameWinner}</p>
+        <div className="absolute inset-0 bg-gradient-to-br from-gray-900 via-gray-800 to-amber-900/30 flex items-center justify-center z-50">
+          <div className="bg-gray-800/90 backdrop-blur-sm p-10 rounded-2xl border border-amber-500/50 text-center shadow-2xl shadow-amber-900/30">
+            <div className="flex items-center justify-center gap-3 mb-4">
+              <PokerIcon name="winner" size={48} />
+              <h1 className="text-4xl font-bold text-amber-400">Game Over!</h1>
+            </div>
+            <p className="text-2xl text-white mb-8">{gameWinner}</p>
             <div className="flex gap-4 justify-center">
               <button
                 onClick={() => startNewGame(true)}
-                className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg transition-colors"
+                className="px-6 py-3 bg-gradient-to-b from-blue-500 to-blue-700 hover:from-blue-400 hover:to-blue-600 text-white font-bold rounded-xl transition-all duration-200 transform hover:-translate-y-0.5 shadow-[0_4px_0_0_#1e40af,0_6px_12px_rgba(0,0,0,0.3)] hover:shadow-[0_2px_0_0_#1e40af,0_4px_8px_rgba(0,0,0,0.3)] active:translate-y-0.5 active:shadow-[0_1px_0_0_#1e40af]"
               >
                 New Game
               </button>
               <button
                 onClick={() => startNewGame(false)}
-                className="px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-bold rounded-lg transition-colors"
+                className="px-6 py-3 bg-gradient-to-b from-emerald-500 to-emerald-700 hover:from-emerald-400 hover:to-emerald-600 text-white font-bold rounded-xl transition-all duration-200 transform hover:-translate-y-0.5 shadow-[0_4px_0_0_#065f46,0_6px_12px_rgba(0,0,0,0.3)] hover:shadow-[0_2px_0_0_#065f46,0_4px_8px_rgba(0,0,0,0.3)] active:translate-y-0.5 active:shadow-[0_1px_0_0_#065f46]"
               >
                 Practice Mode
               </button>
@@ -2367,13 +2941,13 @@ const PokerTable: React.FC = () => {
               <>
                 <button
                   onClick={() => setIsPaused(!isPaused)}
-                  className={`px-4 py-2 ${isPaused ? 'bg-green-600 hover:bg-green-700' : 'bg-yellow-600 hover:bg-yellow-700'} text-white text-sm font-bold rounded transition-colors`}
+                  className={`px-4 py-2 ${isPaused ? 'bg-gradient-to-b from-emerald-500 to-emerald-700 shadow-[0_2px_0_0_#065f46,0_3px_6px_rgba(0,0,0,0.3)] hover:shadow-[0_1px_0_0_#065f46]' : 'bg-gradient-to-b from-amber-500 to-amber-700 shadow-[0_2px_0_0_#92400e,0_3px_6px_rgba(0,0,0,0.3)] hover:shadow-[0_1px_0_0_#92400e]'} text-white text-sm font-bold rounded-lg transition-all duration-200 transform hover:-translate-y-0.5 active:translate-y-0`}
                 >
                   {isPaused ? '▶ Resume' : '⏸ Pause'}
                 </button>
                 <button
                   onClick={() => { setIsPaused(false); startNewGame(true); }}
-                  className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-bold rounded transition-colors"
+                  className="px-4 py-2 bg-gradient-to-b from-red-500 to-red-700 hover:from-red-400 hover:to-red-600 text-white text-sm font-bold rounded-lg transition-all duration-200 transform hover:-translate-y-0.5 shadow-[0_2px_0_0_#991b1b,0_3px_6px_rgba(0,0,0,0.3)] hover:shadow-[0_1px_0_0_#991b1b] active:translate-y-0 active:shadow-[0_0px_0_0_#991b1b]"
                 >
                   Restart Game
                 </button>
@@ -2381,7 +2955,7 @@ const PokerTable: React.FC = () => {
             ) : (
               <button
                 onClick={() => startNewGame(false)}
-                className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-bold rounded transition-colors"
+                className="px-4 py-2 bg-gradient-to-b from-emerald-500 to-emerald-700 hover:from-emerald-400 hover:to-emerald-600 text-white text-sm font-bold rounded-lg transition-all duration-200 transform hover:-translate-y-0.5 shadow-[0_2px_0_0_#065f46,0_3px_6px_rgba(0,0,0,0.3)] hover:shadow-[0_1px_0_0_#065f46] active:translate-y-0 active:shadow-[0_0px_0_0_#065f46]"
               >
                 New Hand
               </button>
@@ -2399,7 +2973,7 @@ const PokerTable: React.FC = () => {
             )}
             <button
                 onClick={() => { setIsPaused(false); setGameStarted(false); setGameWinner(null); }}
-                className="px-4 py-2 bg-gray-600 hover:bg-gray-500 text-white text-xs rounded transition-colors"
+                className="px-4 py-2 bg-gradient-to-b from-gray-500 to-gray-700 hover:from-gray-400 hover:to-gray-600 text-white text-xs rounded-lg transition-all duration-200 transform hover:-translate-y-0.5 shadow-[0_2px_0_0_#374151,0_3px_6px_rgba(0,0,0,0.3)] hover:shadow-[0_1px_0_0_#374151] active:translate-y-0 active:shadow-[0_0px_0_0_#374151]"
               >
                 Exit
               </button>
