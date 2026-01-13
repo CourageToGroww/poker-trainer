@@ -2077,6 +2077,7 @@ const PokerTable: React.FC = () => {
     setHandWinner(null);
     setGameWinner(null);
     setBlindLevel(0); // Reset blinds for new game
+    potAwardedRef.current = false; // Reset pot awarded flag
   };
 
   const startNextHand = useCallback(() => {
@@ -2116,6 +2117,7 @@ const PokerTable: React.FC = () => {
     setDealerIndex(newDealerIdx);
     setReplayMode(false);
     setShowAllHands(false);
+    potAwardedRef.current = false; // Reset for new hand
   }, [players, dealerIndex, handNumber, blindLevel, handsPerLevel, initializeGame]);
 
   // Auto-continue to next hand in full game mode
@@ -2386,6 +2388,7 @@ const PokerTable: React.FC = () => {
   // Ref to prevent AI action clustering
   const aiProcessingRef = useRef(false);
   const lastAiPlayerRef = useRef<string | null>(null);
+  const potAwardedRef = useRef(false);
 
   // Auto-skip user's turn if they're all-in
   useEffect(() => {
@@ -2673,7 +2676,8 @@ const PokerTable: React.FC = () => {
 
     if (activePlayers.length <= 1) {
       // Hand is over - winner by fold
-      if (activePlayers.length === 1 && gameState.pot > 0) {
+      if (activePlayers.length === 1 && gameState.pot > 0 && !potAwardedRef.current) {
+        potAwardedRef.current = true; // Prevent double-awarding
         const winner = activePlayers[0];
         const potWon = gameState.pot;
         const winnerName = winner.name === 'You' ? 'You' : `${winner.positionName} (AI)`;
@@ -2700,7 +2704,8 @@ const PokerTable: React.FC = () => {
     }
 
     // Handle showdown - compare hands
-    if (gameState.street === 'showdown' && gameState.pot > 0) {
+    if (gameState.street === 'showdown' && gameState.pot > 0 && !potAwardedRef.current) {
+      potAwardedRef.current = true; // Prevent double-awarding
       // Evaluate each player's hand strength
       const playerStrengths = activePlayers.map(p => ({
         player: p,
