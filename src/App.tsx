@@ -59,6 +59,7 @@ interface Player {
   isFolded: boolean;
   currentBet: number;
   hasActed: boolean;
+  totalBetThisHand: number; // Track total contribution for side pot calculations
 }
 
 interface GameState {
@@ -1980,6 +1981,7 @@ const PokerTable: React.FC = () => {
         isFolded: chips <= 0, // Eliminated players are folded
         currentBet,
         hasActed: chips <= 0, // Eliminated players count as already acted
+        totalBetThisHand: currentBet, // Track total contribution (starts with blinds)
         cards: chips > 0
           ? dealCards(deck, 2).map(c => isHuman ? c : { ...c, hidden: true })
           : []
@@ -2323,11 +2325,13 @@ const PokerTable: React.FC = () => {
         const callAmt = Math.min(neededToCall, player.chips);
         player.chips -= callAmt;
         player.currentBet += callAmt;
+        player.totalBetThisHand += callAmt; // Track total contribution
       } else if (action === 'raise') {
         const maxRaiseTotal = player.chips + player.currentBet;
         const actualRaiseTo = Math.min(amount, maxRaiseTotal);
         const toAdd = actualRaiseTo - player.currentBet;
         player.chips -= Math.max(0, toAdd);
+        player.totalBetThisHand += Math.max(0, toAdd); // Track total contribution
         player.currentBet = actualRaiseTo;
         // Reset hasActed for others only if this is an actual raise (not just calling all-in)
         // But DON'T reset for all-in players (they can't act anyway)
@@ -2682,11 +2686,11 @@ const PokerTable: React.FC = () => {
         const potWon = gameState.pot;
         const winnerName = winner.name === 'You' ? 'You' : `${winner.positionName} (AI)`;
 
-        // Award pot to winner
+        // Award pot to winner and reset ALL players' bets
         setPlayers(prev => prev.map(p =>
           p.id === winner.id
-            ? { ...p, chips: p.chips + potWon }
-            : p
+            ? { ...p, chips: p.chips + potWon, currentBet: 0, totalBetThisHand: 0 }
+            : { ...p, currentBet: 0, totalBetThisHand: 0 }
         ));
 
         setActionLog(prev => [...prev, {
@@ -2703,9 +2707,10 @@ const PokerTable: React.FC = () => {
       return;
     }
 
-    // Handle showdown - compare hands
+    // Handle showdown - compare hands with proper side pot logic
     if (gameState.street === 'showdown' && gameState.pot > 0 && !potAwardedRef.current) {
       potAwardedRef.current = true; // Prevent double-awarding
+      
       // Evaluate each player's hand strength
       const playerStrengths = activePlayers.map(p => ({
         player: p,
@@ -2715,29 +2720,88 @@ const PokerTable: React.FC = () => {
         )
       }));
 
-      // Find winner (highest strength)
-      const winner = playerStrengths.reduce((best, curr) =>
-        curr.strength > best.strength ? curr : best
-      );
+      // Calculate side pots based on contributions
+      // Sort by contribution to determine pot levels
+      const contributions = [...new Set(activePlayers.map(p => p.totalBetThisHand))].sort((a, b) => a - b);
+      
+      interface PotAward {
+        playerId: string;
+        amount: number;
+        playerName: string;
+      }
+      
+      const awards: PotAward[] = [];
+      let processedAmount = 0;
+      
+      for (let i = 0; i < contributions.length; i++) {
+        const currentLevel = contributions[i];
+        const prevLevel = i > 0 ? contributions[i - 1] : 0;
+        const levelContribution = currentLevel - prevLevel;
+        
+        // Players eligible for this pot level are those who contributed at least this much
+        const eligiblePlayers = playerStrengths.filter(
+          ps => ps.player.totalBetThisHand >= currentLevel
+        );
+        
+        if (eligiblePlayers.length === 0) continue;
+        
+        // Count all players (including folded) who contributed to this level
+        const allContributors = players.filter(p => p.totalBetThisHand >= currentLevel);
+        const potForThisLevel = levelContribution * allContributors.length;
+        
+        if (potForThisLevel <= 0) continue;
+        
+        // Find winner among eligible players
+        const winner = eligiblePlayers.reduce((best, curr) =>
+          curr.strength > best.strength ? curr : best
+        );
+        
+        const existingAward = awards.find(a => a.playerId === winner.player.id);
+        if (existingAward) {
+          existingAward.amount += potForThisLevel;
+        } else {
+          awards.push({
+            playerId: winner.player.id,
+            amount: potForThisLevel,
+            playerName: winner.player.name === 'You' ? 'You' : `${winner.player.positionName} (AI)`
+          });
+        }
+        
+        processedAmount += potForThisLevel;
+      }
+      
+      // Handle any remaining pot (from folded players' contributions)
+      const remainingPot = gameState.pot - processedAmount;
+      if (remainingPot > 0 && awards.length > 0) {
+        // Award to the main winner (first award)
+        awards[0].amount += remainingPot;
+      }
+      
+      // Apply awards and reset currentBet for all players
+      setPlayers(prev => prev.map(p => {
+        const award = awards.find(a => a.playerId === p.id);
+        return {
+          ...p,
+          chips: p.chips + (award?.amount || 0),
+          currentBet: 0,
+          totalBetThisHand: 0
+        };
+      }));
 
-      const potWon = gameState.pot;
-      const winnerName = winner.player.name === 'You' ? 'You' : `${winner.player.positionName} (AI)`;
-
-      // Award pot to winner
-      setPlayers(prev => prev.map(p =>
-        p.id === winner.player.id
-          ? { ...p, chips: p.chips + potWon }
-          : p
-      ));
-
+      // Create result message
+      const resultMessages = awards.map(a => `${a.playerName} wins $${a.amount}`);
+      const resultMessage = resultMessages.join(', ') + ' at showdown!';
+      
       setActionLog(prev => [...prev, {
-        message: `${winnerName} wins $${potWon} at showdown!`,
-        playerPosition: winner.player.positionName,
+        message: resultMessage,
+        playerPosition: awards[0]?.playerName.includes('(AI)') 
+          ? awards[0].playerName.replace(' (AI)', '') as Position 
+          : 'BTN' as Position,
         action: 'check'
       }]);
 
       // Set hand winner
-      setHandWinner(`${winnerName} wins $${potWon} at showdown!`);
+      setHandWinner(resultMessage);
 
       // Reset pot and enter replay mode
       setGameState(prev => ({ ...prev, pot: 0 }));
