@@ -1396,11 +1396,11 @@ const PlayingCard: React.FC<{ card: Card; className?: string; showCard?: boolean
   if (card.hidden && !showCard) {
     return (
       <div
-        className={`w-10 h-14 sm:w-12 sm:h-16 bg-gradient-to-br from-blue-700 to-blue-900 border-2 border-blue-400 rounded-lg shadow-md ${className}`}
+        className={`w-8 h-11 sm:w-10 sm:h-14 md:w-12 md:h-16 bg-gradient-to-br from-blue-700 to-blue-900 border-2 border-blue-400 rounded-lg shadow-md ${className}`}
         aria-label="Hidden Card"
       >
         <div className="w-full h-full flex items-center justify-center">
-          <div className="w-6 h-8 border border-blue-400 rounded opacity-50"></div>
+          <div className="w-4 h-6 sm:w-5 sm:h-7 md:w-6 md:h-8 border border-blue-400 rounded opacity-50"></div>
         </div>
       </div>
     );
@@ -1422,15 +1422,15 @@ const PlayingCard: React.FC<{ card: Card; className?: string; showCard?: boolean
   return (
     <div
       className={`
-        w-10 h-14 sm:w-12 sm:h-16 bg-white rounded-lg shadow-md flex flex-col items-center justify-center
+        w-8 h-11 sm:w-10 sm:h-14 md:w-12 md:h-16 bg-white rounded-lg shadow-md flex flex-col items-center justify-center
         border border-gray-300 select-none ${className}
       `}
       aria-label={`${displayCard.rank} of ${displayCard.suit}`}
     >
-      <span className={`text-sm sm:text-base font-bold ${colorClass}`}>
+      <span className={`text-xs sm:text-sm md:text-base font-bold ${colorClass}`}>
         {displayCard.rank}
       </span>
-      <span className={`text-lg sm:text-xl leading-none ${colorClass}`}>
+      <span className={`text-sm sm:text-lg md:text-xl leading-none ${colorClass}`}>
         {suitIcon}
       </span>
     </div>
@@ -1448,7 +1448,7 @@ const PlayerSeat: React.FC<{ player: Player; style: React.CSSProperties; showHid
     >
       {/* Cards - Show user's cards even after folding so they can follow along */}
       {(!player.isFolded || player.position === 0) && (
-        <div className="flex -space-x-4 mb-2">
+        <div className="flex -space-x-3 sm:-space-x-4 mb-1 sm:mb-2">
           {player.cards.map((card, idx) => (
             <PlayingCard
               key={idx}
@@ -1462,30 +1462,30 @@ const PlayerSeat: React.FC<{ player: Player; style: React.CSSProperties; showHid
 
       {/* Avatar Circle */}
       <div className={`
-        relative w-14 h-14 rounded-full border-4 flex items-center justify-center bg-gray-800 text-white shadow-lg
+        relative w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 rounded-full border-2 sm:border-3 md:border-4 flex items-center justify-center bg-gray-800 text-white shadow-lg
         ${player.isActive ? 'border-yellow-400 shadow-[0_0_15px_rgba(250,204,21,0.6)] animate-pulse' : 'border-gray-600'}
       `}>
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
         </svg>
 
         {/* Dealer Button */}
         {player.isDealer && (
-          <div className="absolute -top-1 -right-1 w-5 h-5 bg-yellow-400 text-black rounded-full flex items-center justify-center border border-yellow-600 font-bold text-xs shadow-sm z-20">
+          <div className="absolute -top-1 -right-1 w-4 h-4 sm:w-5 sm:h-5 bg-yellow-400 text-black rounded-full flex items-center justify-center border border-yellow-600 font-bold text-[10px] sm:text-xs shadow-sm z-20">
             D
           </div>
         )}
       </div>
 
       {/* Info Box */}
-      <div className="mt-1 bg-gray-900/90 text-white px-2 py-1 rounded-lg text-center border border-gray-700 shadow-md min-w-[90px]">
-        <div className="text-xs font-semibold truncate">{player.positionName}</div>
-        <div className="text-xs text-green-400">${player.chips.toLocaleString()}</div>
+      <div className="mt-1 bg-gray-900/90 text-white px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-lg text-center border border-gray-700 shadow-md min-w-[60px] sm:min-w-[75px] md:min-w-[90px]">
+        <div className="text-[10px] sm:text-xs font-semibold truncate">{player.positionName}</div>
+        <div className="text-[10px] sm:text-xs text-green-400">${player.chips.toLocaleString()}</div>
       </div>
 
       {/* Current Bet Bubble */}
       {player.currentBet > 0 && (
-        <div className="absolute -bottom-6 bg-yellow-100 text-yellow-900 text-xs font-bold px-2 py-0.5 rounded-full border border-yellow-300 shadow-sm">
+        <div className="absolute -bottom-5 sm:-bottom-6 bg-yellow-100 text-yellow-900 text-[10px] sm:text-xs font-bold px-1.5 sm:px-2 py-0.5 rounded-full border border-yellow-300 shadow-sm">
           ${player.currentBet}
         </div>
       )}
@@ -1522,16 +1522,28 @@ const ActionControls: React.FC<{
   ];
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 bg-gradient-to-t from-gray-900 via-gray-900 to-gray-900/95 border-t border-gray-700/50 p-4 z-50 backdrop-blur-sm">
-      <div className="max-w-4xl mx-auto flex flex-col gap-3">
-        {/* Raise presets */}
-        <div className="flex justify-center gap-2 flex-wrap">
+    <div className="fixed bottom-0 left-0 right-0 bg-gradient-to-t from-gray-900 via-gray-900 to-gray-900/95 border-t border-gray-700/50 p-2 sm:p-3 md:p-4 z-50 backdrop-blur-sm">
+      <div className="max-w-4xl mx-auto flex flex-col gap-2 sm:gap-3">
+        {/* Pot & Blinds - Mobile: Top, Desktop: Right side */}
+        <div className="flex justify-center gap-2 text-[10px] sm:text-xs md:hidden">
+          <div className="bg-gray-800 px-2 py-1 rounded text-white font-mono border border-gray-700">
+            <span className="text-gray-400">Blinds:</span>{' '}
+            <span className="text-yellow-400">${smallBlind}/${bigBlind}</span>
+          </div>
+          <div className="bg-gray-800 px-2 py-1 rounded text-white font-mono border border-gray-700">
+            <span className="text-gray-400">Pot:</span>{' '}
+            <span className="text-green-400 font-bold">${pot}</span>
+          </div>
+        </div>
+
+        {/* Raise presets - Scrollable on mobile */}
+        <div className="flex justify-start sm:justify-center gap-1.5 sm:gap-2 overflow-x-auto pb-1 sm:pb-0 scrollbar-hide">
           {presetRaises.map((preset) => (
             <button
               key={preset.label}
               onClick={() => setRaiseAmount(Math.min(Math.max(preset.amount, minRaise), maxRaise))}
               disabled={disabled}
-              className={`px-4 py-1.5 text-xs font-medium rounded-lg transition-all duration-200 transform hover:-translate-y-0.5 active:translate-y-0 ${
+              className={`px-2.5 sm:px-3 md:px-4 py-1 sm:py-1.5 text-[10px] sm:text-xs font-medium rounded-lg transition-all duration-200 transform hover:-translate-y-0.5 active:translate-y-0 whitespace-nowrap flex-shrink-0 ${
                 preset.label === 'All-In'
                   ? 'bg-gradient-to-b from-red-500 to-red-700 hover:from-red-400 hover:to-red-600 disabled:from-gray-700 disabled:to-gray-800 disabled:text-gray-500 text-white shadow-[0_2px_0_0_#991b1b,0_3px_6px_rgba(0,0,0,0.3)] hover:shadow-[0_1px_0_0_#991b1b] active:shadow-[0_0px_0_0_#991b1b] disabled:shadow-none disabled:transform-none'
                   : 'bg-gradient-to-b from-gray-600 to-gray-800 hover:from-gray-500 hover:to-gray-700 disabled:from-gray-700 disabled:to-gray-800 disabled:text-gray-500 text-white shadow-[0_2px_0_0_#1f2937,0_3px_6px_rgba(0,0,0,0.3)] hover:shadow-[0_1px_0_0_#1f2937] active:shadow-[0_0px_0_0_#1f2937] disabled:shadow-none disabled:transform-none'
@@ -1542,11 +1554,11 @@ const ActionControls: React.FC<{
           ))}
         </div>
 
-        {/* Slider and Actions */}
-        <div className="flex items-center justify-center gap-4">
-          {/* Slider */}
-          <div className="flex items-center gap-2 w-48">
-            <span className="text-white text-xs">${minRaise}</span>
+        {/* Slider and Actions - Responsive layout */}
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-4">
+          {/* Slider - Full width on mobile */}
+          <div className="flex items-center gap-2 w-full sm:w-48 md:w-56">
+            <span className="text-white text-[10px] sm:text-xs">${minRaise}</span>
             <input
               type="range"
               min={minRaise}
@@ -1557,15 +1569,15 @@ const ActionControls: React.FC<{
               className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-green-500"
               disabled={disabled}
             />
-            <span className="text-white text-xs">${maxRaise}</span>
+            <span className="text-white text-[10px] sm:text-xs">${maxRaise}</span>
           </div>
 
-          {/* Action Buttons */}
-          <div className="flex gap-3">
+          {/* Action Buttons - Grid on mobile, flex on desktop */}
+          <div className="grid grid-cols-3 sm:flex gap-2 sm:gap-3 w-full sm:w-auto">
             <button
               onClick={onFold}
               disabled={disabled}
-              className="px-5 py-2.5 rounded-xl bg-gradient-to-b from-gray-500 to-gray-700 hover:from-gray-400 hover:to-gray-600 disabled:from-gray-700 disabled:to-gray-800 disabled:text-gray-500 text-white font-semibold transition-all duration-200 transform hover:-translate-y-0.5 shadow-[0_3px_0_0_#374151,0_4px_8px_rgba(0,0,0,0.3)] hover:shadow-[0_1px_0_0_#374151,0_2px_4px_rgba(0,0,0,0.3)] active:translate-y-0.5 active:shadow-[0_0px_0_0_#374151] disabled:shadow-none disabled:transform-none"
+              className="px-3 sm:px-4 md:px-5 py-2 sm:py-2.5 rounded-lg sm:rounded-xl bg-gradient-to-b from-gray-500 to-gray-700 hover:from-gray-400 hover:to-gray-600 disabled:from-gray-700 disabled:to-gray-800 disabled:text-gray-500 text-white text-sm sm:text-base font-semibold transition-all duration-200 transform hover:-translate-y-0.5 shadow-[0_3px_0_0_#374151,0_4px_8px_rgba(0,0,0,0.3)] hover:shadow-[0_1px_0_0_#374151,0_2px_4px_rgba(0,0,0,0.3)] active:translate-y-0.5 active:shadow-[0_0px_0_0_#374151] disabled:shadow-none disabled:transform-none"
             >
               Fold
             </button>
@@ -1574,7 +1586,7 @@ const ActionControls: React.FC<{
               <button
                 onClick={onCheck}
                 disabled={disabled}
-                className="px-5 py-2.5 rounded-xl bg-gradient-to-b from-sky-500 to-sky-700 hover:from-sky-400 hover:to-sky-600 disabled:from-gray-700 disabled:to-gray-800 disabled:text-gray-500 text-white font-semibold transition-all duration-200 transform hover:-translate-y-0.5 shadow-[0_3px_0_0_#0369a1,0_4px_8px_rgba(0,0,0,0.3)] hover:shadow-[0_1px_0_0_#0369a1,0_2px_4px_rgba(0,0,0,0.3)] active:translate-y-0.5 active:shadow-[0_0px_0_0_#0369a1] disabled:shadow-none disabled:transform-none"
+                className="px-3 sm:px-4 md:px-5 py-2 sm:py-2.5 rounded-lg sm:rounded-xl bg-gradient-to-b from-sky-500 to-sky-700 hover:from-sky-400 hover:to-sky-600 disabled:from-gray-700 disabled:to-gray-800 disabled:text-gray-500 text-white text-sm sm:text-base font-semibold transition-all duration-200 transform hover:-translate-y-0.5 shadow-[0_3px_0_0_#0369a1,0_4px_8px_rgba(0,0,0,0.3)] hover:shadow-[0_1px_0_0_#0369a1,0_2px_4px_rgba(0,0,0,0.3)] active:translate-y-0.5 active:shadow-[0_0px_0_0_#0369a1] disabled:shadow-none disabled:transform-none"
               >
                 Check
               </button>
@@ -1582,23 +1594,23 @@ const ActionControls: React.FC<{
               <button
                 onClick={onCall}
                 disabled={disabled}
-                className="px-5 py-2.5 rounded-xl bg-gradient-to-b from-sky-500 to-sky-700 hover:from-sky-400 hover:to-sky-600 disabled:from-gray-700 disabled:to-gray-800 disabled:text-gray-500 text-white font-semibold transition-all duration-200 transform hover:-translate-y-0.5 shadow-[0_3px_0_0_#0369a1,0_4px_8px_rgba(0,0,0,0.3)] hover:shadow-[0_1px_0_0_#0369a1,0_2px_4px_rgba(0,0,0,0.3)] active:translate-y-0.5 active:shadow-[0_0px_0_0_#0369a1] disabled:shadow-none disabled:transform-none"
+                className="px-3 sm:px-4 md:px-5 py-2 sm:py-2.5 rounded-lg sm:rounded-xl bg-gradient-to-b from-sky-500 to-sky-700 hover:from-sky-400 hover:to-sky-600 disabled:from-gray-700 disabled:to-gray-800 disabled:text-gray-500 text-white text-sm sm:text-base font-semibold transition-all duration-200 transform hover:-translate-y-0.5 shadow-[0_3px_0_0_#0369a1,0_4px_8px_rgba(0,0,0,0.3)] hover:shadow-[0_1px_0_0_#0369a1,0_2px_4px_rgba(0,0,0,0.3)] active:translate-y-0.5 active:shadow-[0_0px_0_0_#0369a1] disabled:shadow-none disabled:transform-none"
               >
-                Call ${callAmount}
+                <span className="hidden sm:inline">Call </span>${callAmount}
               </button>
             )}
 
             <button
               onClick={() => onRaise(raiseAmount)}
               disabled={disabled}
-              className="px-6 py-2.5 rounded-xl bg-gradient-to-b from-amber-400 to-amber-600 hover:from-amber-300 hover:to-amber-500 disabled:from-gray-700 disabled:to-gray-800 disabled:text-gray-500 text-gray-900 font-bold transition-all duration-200 transform hover:-translate-y-0.5 shadow-[0_3px_0_0_#b45309,0_4px_8px_rgba(0,0,0,0.3)] hover:shadow-[0_1px_0_0_#b45309,0_2px_4px_rgba(0,0,0,0.3)] active:translate-y-0.5 active:shadow-[0_0px_0_0_#b45309] disabled:shadow-none disabled:transform-none min-w-[120px]"
+              className="px-3 sm:px-4 md:px-6 py-2 sm:py-2.5 rounded-lg sm:rounded-xl bg-gradient-to-b from-amber-400 to-amber-600 hover:from-amber-300 hover:to-amber-500 disabled:from-gray-700 disabled:to-gray-800 disabled:text-gray-500 text-gray-900 text-sm sm:text-base font-bold transition-all duration-200 transform hover:-translate-y-0.5 shadow-[0_3px_0_0_#b45309,0_4px_8px_rgba(0,0,0,0.3)] hover:shadow-[0_1px_0_0_#b45309,0_2px_4px_rgba(0,0,0,0.3)] active:translate-y-0.5 active:shadow-[0_0px_0_0_#b45309] disabled:shadow-none disabled:transform-none sm:min-w-[100px] md:min-w-[120px]"
             >
-              Raise ${raiseAmount}
+              <span className="hidden sm:inline">Raise </span>${raiseAmount}
             </button>
           </div>
 
-          {/* Pot & Blinds */}
-          <div className="flex items-center gap-2 text-xs">
+          {/* Pot & Blinds - Desktop only (right side) */}
+          <div className="hidden md:flex items-center gap-2 text-xs">
             <div className="bg-gray-800 px-2 py-1 rounded text-white font-mono border border-gray-700">
               <span className="text-gray-400">Blinds:</span>{' '}
               <span className="text-yellow-400">${smallBlind}/${bigBlind}</span>
@@ -1676,7 +1688,7 @@ const PotOddsInfo: React.FC<{
   const { tip, color, hands } = getPotOddsTip();
 
   return (
-    <div className="absolute left-4 bottom-36 w-80 bg-gray-900/95 rounded-lg border border-gray-700 p-3 z-40">
+    <div className="absolute left-2 sm:left-4 bottom-32 sm:bottom-36 w-64 sm:w-72 md:w-80 bg-gray-900/95 rounded-lg border border-gray-700 p-2 sm:p-3 z-40 max-h-[40vh] overflow-y-auto">
       <div className="text-xs space-y-2">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-gray-700 pb-2">
@@ -1755,24 +1767,24 @@ const ActionLog: React.FC<{
   ];
 
   return (
-    <div className={`absolute right-4 top-4 ${expanded ? 'w-96' : 'w-64'} bg-black/80 rounded-lg border border-gray-700 overflow-hidden transition-all`}>
+    <div className={`absolute right-2 sm:right-4 top-2 sm:top-4 ${expanded ? 'w-72 sm:w-80 md:w-96' : 'w-48 sm:w-56 md:w-64'} bg-black/80 rounded-lg border border-gray-700 overflow-hidden transition-all`}>
       {/* Header */}
-      <div className="flex items-center justify-between px-3 py-2 bg-gray-800 border-b border-gray-700">
-        <span className="text-xs text-gray-300 font-bold">Action Log</span>
+      <div className="flex items-center justify-between px-2 sm:px-3 py-1.5 sm:py-2 bg-gray-800 border-b border-gray-700">
+        <span className="text-[10px] sm:text-xs text-gray-300 font-bold">Action Log</span>
         <button
           onClick={onToggle}
-          className="text-xs text-blue-400 hover:text-blue-300"
+          className="text-[10px] sm:text-xs text-blue-400 hover:text-blue-300"
         >
-          {expanded ? 'Collapse' : 'Expand'}
+          {expanded ? '−' : '+'}
         </button>
       </div>
 
       {/* Actions */}
-      <div className={`${expanded ? 'max-h-48' : 'max-h-32'} overflow-y-auto p-2`}>
+      <div className={`${expanded ? 'max-h-32 sm:max-h-48' : 'max-h-20 sm:max-h-32'} overflow-y-auto p-1.5 sm:p-2`}>
         {actions.slice(-(expanded ? 20 : 8)).map((action, idx) => (
           <div
             key={idx}
-            className="relative text-xs text-white py-1 px-2 hover:bg-gray-800 rounded cursor-help"
+            className="relative text-[10px] sm:text-xs text-white py-0.5 sm:py-1 px-1.5 sm:px-2 hover:bg-gray-800 rounded cursor-help"
             onMouseEnter={() => setHoveredIdx(idx)}
             onMouseLeave={() => setHoveredIdx(null)}
           >
@@ -1790,37 +1802,40 @@ const ActionLog: React.FC<{
 
       {/* Current Optimal Play Recommendation */}
       {optimalPlay && (
-        <div className="border-t border-green-700 p-3 bg-green-900/30">
-          <div className="text-green-400 text-xs font-bold mb-2 flex items-center gap-1">
-            <span className="flex items-center gap-1"><PokerIcon name="practice" size={16} /> OPTIMAL PLAY NOW ({optimalPlay.position})</span>
+        <div className="border-t border-green-700 p-2 sm:p-3 bg-green-900/30">
+          <div className="text-green-400 text-[10px] sm:text-xs font-bold mb-1 sm:mb-2 flex items-center gap-1">
+            <span className="flex items-center gap-1"><PokerIcon name="practice" size={14} /> <span className="hidden sm:inline">OPTIMAL PLAY</span><span className="sm:hidden">OPTIMAL</span> ({optimalPlay.position})</span>
           </div>
-          <div className="text-white text-sm font-bold mb-2 leading-snug">
+          <div className="text-white text-xs sm:text-sm font-bold mb-1 sm:mb-2 leading-snug">
             {optimalPlay.recommendation}
           </div>
-          <div className="grid grid-cols-2 gap-1 text-[10px]">
-            <div className="bg-gray-800 rounded px-2 py-1">
-              <span className="text-gray-400">Hand Strength:</span>{' '}
+          <div className="grid grid-cols-2 gap-1 text-[8px] sm:text-[10px]">
+            <div className="bg-gray-800 rounded px-1.5 sm:px-2 py-0.5 sm:py-1">
+              <span className="text-gray-400 hidden sm:inline">Hand Strength:</span>
+              <span className="text-gray-400 sm:hidden">Str:</span>{' '}
               <span className={optimalPlay.handStrength >= 60 ? 'text-green-400' : optimalPlay.handStrength >= 30 ? 'text-yellow-400' : 'text-red-400'}>
                 {optimalPlay.handStrength.toFixed(0)}%
               </span>
             </div>
-            <div className="bg-gray-800 rounded px-2 py-1">
-              <span className="text-gray-400">Pot Odds:</span>{' '}
+            <div className="bg-gray-800 rounded px-1.5 sm:px-2 py-0.5 sm:py-1">
+              <span className="text-gray-400 hidden sm:inline">Pot Odds:</span>
+              <span className="text-gray-400 sm:hidden">Odds:</span>{' '}
               <span className={optimalPlay.potOdds <= 25 ? 'text-green-400' : optimalPlay.potOdds <= 35 ? 'text-yellow-400' : 'text-red-400'}>
                 {optimalPlay.potOdds.toFixed(1)}%
               </span>
             </div>
-            <div className="bg-gray-800 rounded px-2 py-1">
+            <div className="bg-gray-800 rounded px-1.5 sm:px-2 py-0.5 sm:py-1">
               <span className="text-gray-400">Street:</span>{' '}
               <span className="text-blue-300 capitalize">{optimalPlay.street}</span>
             </div>
-            <div className="bg-gray-800 rounded px-2 py-1">
-              <span className="text-gray-400">Situation:</span>{' '}
-              <span className="text-purple-300">{optimalPlay.facingBet ? `Facing $${optimalPlay.callAmount}` : 'Can check'}</span>
+            <div className="bg-gray-800 rounded px-1.5 sm:px-2 py-0.5 sm:py-1">
+              <span className="text-gray-400 hidden sm:inline">Situation:</span>
+              <span className="text-gray-400 sm:hidden">Bet:</span>{' '}
+              <span className="text-purple-300">{optimalPlay.facingBet ? `$${optimalPlay.callAmount}` : 'Check'}</span>
             </div>
           </div>
-          {/* Why this is optimal */}
-          <div className="mt-2 text-[10px] text-gray-400 bg-gray-800/50 rounded p-2">
+          {/* Why this is optimal - hidden on very small screens */}
+          <div className="mt-1.5 sm:mt-2 text-[8px] sm:text-[10px] text-gray-400 bg-gray-800/50 rounded p-1.5 sm:p-2 hidden sm:block">
             <span className="text-gray-500 font-bold">WHY: </span>
             {optimalPlay.handStrength >= 70 ? (
               'Strong hand - build the pot for value!'
@@ -1841,21 +1856,21 @@ const ActionLog: React.FC<{
         </div>
       )}
 
-      {/* Position Strategy Tip */}
+      {/* Position Strategy Tip - Only on larger screens when expanded */}
       {expanded && (
-        <div className="border-t border-gray-700 p-2 bg-gray-900/50">
-          <div className="text-yellow-400 text-xs font-bold mb-1 flex items-center gap-1">
-            <PokerIcon name="position" size={14} /> Position Strategy ({optimalPlay?.position || 'General'}):
+        <div className="border-t border-gray-700 p-1.5 sm:p-2 bg-gray-900/50 hidden sm:block">
+          <div className="text-yellow-400 text-[10px] sm:text-xs font-bold mb-1 flex items-center gap-1">
+            <PokerIcon name="position" size={12} /> Position ({optimalPlay?.position || 'General'}):
           </div>
-          <div className="text-gray-300 text-xs leading-relaxed">{positionTip}</div>
+          <div className="text-gray-300 text-[10px] sm:text-xs leading-relaxed">{positionTip}</div>
         </div>
       )}
 
-      {/* Position Chart Toggle */}
-      <div className="border-t border-gray-700 px-3 py-2 bg-gray-800/50">
+      {/* Position Chart Toggle - Hidden on mobile */}
+      <div className="border-t border-gray-700 px-2 sm:px-3 py-1.5 sm:py-2 bg-gray-800/50 hidden sm:block">
         <button
           onClick={() => setShowPositionChart(!showPositionChart)}
-          className="text-xs text-cyan-400 hover:text-cyan-300 flex items-center gap-1 w-full justify-center"
+          className="text-[10px] sm:text-xs text-cyan-400 hover:text-cyan-300 flex items-center gap-1 w-full justify-center"
         >
           {showPositionChart ? '▼ Hide' : '▶ Show'} Position Chart
         </button>
@@ -2864,19 +2879,19 @@ const PokerTable: React.FC = () => {
 
   const getPositionStyle = (posIndex: number): React.CSSProperties => {
     // Positions arranged in oval around table (clockwise from bottom)
-    // 8 players evenly spread around the oval
+    // Responsive: tighter positions on mobile, spread out on desktop
     const positions = [
-      { bottom: '-5%', left: '50%', transform: 'translateX(-50%)' },  // Seat 0 - bottom center (User)
-      { bottom: '5%', left: '12%' },                                   // Seat 1 - lower left
-      { top: '40%', left: '-3%', transform: 'translateY(-50%)' },      // Seat 2 - middle left
-      { top: '5%', left: '12%' },                                      // Seat 3 - upper left
-      { top: '-5%', left: '50%', transform: 'translateX(-50%)' },      // Seat 4 - top center
-      { top: '5%', right: '12%' },                                     // Seat 5 - upper right
-      { top: '40%', right: '-3%', transform: 'translateY(-50%)' },     // Seat 6 - middle right
-      { bottom: '5%', right: '12%' },                                  // Seat 7 - lower right
+      { bottom: '-8%', left: '50%', transform: 'translateX(-50%)' },   // Seat 0 - bottom center (User)
+      { bottom: '0%', left: '5%' },                                    // Seat 1 - lower left
+      { top: '35%', left: '-5%', transform: 'translateY(-50%)' },      // Seat 2 - middle left
+      { top: '0%', left: '5%' },                                       // Seat 3 - upper left
+      { top: '-8%', left: '50%', transform: 'translateX(-50%)' },      // Seat 4 - top center
+      { top: '0%', right: '5%' },                                      // Seat 5 - upper right
+      { top: '35%', right: '-5%', transform: 'translateY(-50%)' },     // Seat 6 - middle right
+      { bottom: '0%', right: '5%' },                                   // Seat 7 - lower right
     ];
     return positions[posIndex] || {};
-  };;;;
+  };
 
   const callAmount = userPlayer ? gameState.currentBet - userPlayer.currentBet : 0;
   const canCheck = callAmount === 0;
@@ -2892,46 +2907,46 @@ const PokerTable: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-900 flex flex-col items-center justify-center p-4 pb-36 overflow-hidden">
+    <div className="min-h-screen bg-gray-900 flex flex-col items-center justify-center p-2 sm:p-4 pb-32 sm:pb-36 overflow-hidden">
       {/* Start Screen */}
       {!gameStarted && (
-        <div className="absolute inset-0 bg-gradient-to-br from-gray-900 via-gray-800 to-emerald-900/30 flex items-center justify-center z-50">
-          <div className="bg-gray-800/90 backdrop-blur-sm p-10 rounded-2xl border border-emerald-700/50 text-center shadow-2xl shadow-emerald-900/20 max-w-md">
-            <div className="mb-6">
-              <h1 className="text-4xl font-bold text-white mb-2 tracking-tight">Texas Hold'em</h1>
-              <h2 className="text-2xl font-semibold text-emerald-400">Trainer</h2>
+        <div className="absolute inset-0 bg-gradient-to-br from-gray-900 via-gray-800 to-emerald-900/30 flex items-center justify-center z-50 p-4">
+          <div className="bg-gray-800/90 backdrop-blur-sm p-6 sm:p-8 md:p-10 rounded-2xl border border-emerald-700/50 text-center shadow-2xl shadow-emerald-900/20 w-full max-w-sm sm:max-w-md">
+            <div className="mb-4 sm:mb-6">
+              <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white mb-1 sm:mb-2 tracking-tight">Texas Hold'em</h1>
+              <h2 className="text-xl sm:text-2xl font-semibold text-emerald-400">Trainer</h2>
             </div>
-            <p className="text-gray-400 mb-8">Learn to play like a pro with GTO-based AI opponents</p>
-            <div className="flex flex-col gap-4">
+            <p className="text-gray-400 mb-6 sm:mb-8 text-sm sm:text-base">Learn to play like a pro with GTO-based AI opponents</p>
+            <div className="flex flex-col gap-3 sm:gap-4">
               <button
                 onClick={() => startNewGame(false)}
-                className="px-8 py-4 bg-gradient-to-b from-emerald-500 to-emerald-700 hover:from-emerald-400 hover:to-emerald-600 text-white font-bold rounded-xl text-lg transition-all duration-200 transform hover:-translate-y-0.5 shadow-[0_4px_0_0_#065f46,0_6px_12px_rgba(0,0,0,0.3)] hover:shadow-[0_2px_0_0_#065f46,0_4px_8px_rgba(0,0,0,0.3)] active:translate-y-0.5 active:shadow-[0_1px_0_0_#065f46]"
+                className="px-6 sm:px-8 py-3 sm:py-4 bg-gradient-to-b from-emerald-500 to-emerald-700 hover:from-emerald-400 hover:to-emerald-600 text-white font-bold rounded-xl text-base sm:text-lg transition-all duration-200 transform hover:-translate-y-0.5 shadow-[0_4px_0_0_#065f46,0_6px_12px_rgba(0,0,0,0.3)] hover:shadow-[0_2px_0_0_#065f46,0_4px_8px_rgba(0,0,0,0.3)] active:translate-y-0.5 active:shadow-[0_1px_0_0_#065f46]"
               >
                 Practice Mode
               </button>
-              <p className="text-gray-500 text-xs -mt-2">Play individual hands with fresh chips each time</p>
+              <p className="text-gray-500 text-xs -mt-2 hidden sm:block">Play individual hands with fresh chips each time</p>
               <button
                 onClick={() => startNewGame(true)}
-                className="px-8 py-4 bg-gradient-to-b from-blue-500 to-blue-700 hover:from-blue-400 hover:to-blue-600 text-white font-bold rounded-xl text-lg transition-all duration-200 transform hover:-translate-y-0.5 shadow-[0_4px_0_0_#1e40af,0_6px_12px_rgba(0,0,0,0.3)] hover:shadow-[0_2px_0_0_#1e40af,0_4px_8px_rgba(0,0,0,0.3)] active:translate-y-0.5 active:shadow-[0_1px_0_0_#1e40af]"
+                className="px-6 sm:px-8 py-3 sm:py-4 bg-gradient-to-b from-blue-500 to-blue-700 hover:from-blue-400 hover:to-blue-600 text-white font-bold rounded-xl text-base sm:text-lg transition-all duration-200 transform hover:-translate-y-0.5 shadow-[0_4px_0_0_#1e40af,0_6px_12px_rgba(0,0,0,0.3)] hover:shadow-[0_2px_0_0_#1e40af,0_4px_8px_rgba(0,0,0,0.3)] active:translate-y-0.5 active:shadow-[0_1px_0_0_#1e40af]"
               >
                 Full Game
               </button>
-              <p className="text-gray-500 text-xs -mt-2">Play until one player has all the chips</p>
-              <div className="border-t border-gray-600/50 my-4"></div>
+              <p className="text-gray-500 text-xs -mt-2 hidden sm:block">Play until one player has all the chips</p>
+              <div className="border-t border-gray-600/50 my-2 sm:my-4"></div>
               <button
                 onClick={() => setTutorialMode(true)}
-                className="px-8 py-4 bg-gradient-to-b from-amber-400 to-amber-600 hover:from-amber-300 hover:to-amber-500 text-gray-900 font-bold rounded-xl text-lg transition-all duration-200 transform hover:-translate-y-0.5 shadow-[0_4px_0_0_#b45309,0_6px_12px_rgba(0,0,0,0.3)] hover:shadow-[0_2px_0_0_#b45309,0_4px_8px_rgba(0,0,0,0.3)] active:translate-y-0.5 active:shadow-[0_1px_0_0_#b45309]"
+                className="px-6 sm:px-8 py-3 sm:py-4 bg-gradient-to-b from-amber-400 to-amber-600 hover:from-amber-300 hover:to-amber-500 text-gray-900 font-bold rounded-xl text-base sm:text-lg transition-all duration-200 transform hover:-translate-y-0.5 shadow-[0_4px_0_0_#b45309,0_6px_12px_rgba(0,0,0,0.3)] hover:shadow-[0_2px_0_0_#b45309,0_4px_8px_rgba(0,0,0,0.3)] active:translate-y-0.5 active:shadow-[0_1px_0_0_#b45309]"
               >
                 Tutorial
               </button>
-              <p className="text-gray-500 text-xs -mt-2">Learn Texas Hold'em from scratch</p>
+              <p className="text-gray-500 text-xs -mt-2 hidden sm:block">Learn Texas Hold'em from scratch</p>
               <button
                 onClick={() => setInteractiveTutorial(true)}
-                className="px-8 py-4 bg-gradient-to-b from-purple-500 to-purple-700 hover:from-purple-400 hover:to-purple-600 text-white font-bold rounded-xl text-lg transition-all duration-200 transform hover:-translate-y-0.5 shadow-[0_4px_0_0_#581c87,0_6px_12px_rgba(0,0,0,0.3)] hover:shadow-[0_2px_0_0_#581c87,0_4px_8px_rgba(0,0,0,0.3)] active:translate-y-0.5 active:shadow-[0_1px_0_0_#581c87]"
+                className="px-6 sm:px-8 py-3 sm:py-4 bg-gradient-to-b from-purple-500 to-purple-700 hover:from-purple-400 hover:to-purple-600 text-white font-bold rounded-xl text-base sm:text-lg transition-all duration-200 transform hover:-translate-y-0.5 shadow-[0_4px_0_0_#581c87,0_6px_12px_rgba(0,0,0,0.3)] hover:shadow-[0_2px_0_0_#581c87,0_4px_8px_rgba(0,0,0,0.3)] active:translate-y-0.5 active:shadow-[0_1px_0_0_#581c87]"
               >
                 Interactive Tutorial
               </button>
-              <p className="text-gray-500 text-xs -mt-2">Learn by playing guided hands</p>
+              <p className="text-gray-500 text-xs -mt-2 hidden sm:block">Learn by playing guided hands</p>
             </div>
           </div>
         </div>
@@ -2939,14 +2954,14 @@ const PokerTable: React.FC = () => {
 
       {/* Game Winner Overlay */}
       {gameWinner && (
-        <div className="absolute inset-0 bg-gradient-to-br from-gray-900 via-gray-800 to-amber-900/30 flex items-center justify-center z-50">
-          <div className="bg-gray-800/90 backdrop-blur-sm p-10 rounded-2xl border border-amber-500/50 text-center shadow-2xl shadow-amber-900/30">
-            <div className="flex items-center justify-center gap-3 mb-4">
-              <PokerIcon name="winner" size={48} />
-              <h1 className="text-4xl font-bold text-amber-400">Game Over!</h1>
+        <div className="absolute inset-0 bg-gradient-to-br from-gray-900 via-gray-800 to-amber-900/30 flex items-center justify-center z-50 p-4">
+          <div className="bg-gray-800/90 backdrop-blur-sm p-6 sm:p-8 md:p-10 rounded-2xl border border-amber-500/50 text-center shadow-2xl shadow-amber-900/30 w-full max-w-sm sm:max-w-md">
+            <div className="flex items-center justify-center gap-2 sm:gap-3 mb-3 sm:mb-4">
+              <PokerIcon name="winner" size={32} className="sm:w-10 sm:h-10 md:w-12 md:h-12" />
+              <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-amber-400">Game Over!</h1>
             </div>
-            <p className="text-2xl text-white mb-8">{gameWinner}</p>
-            <div className="flex gap-4 justify-center">
+            <p className="text-xl sm:text-2xl text-white mb-6 sm:mb-8">{gameWinner}</p>
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center">
               <button
                 onClick={() => startNewGame(true)}
                 className="px-6 py-3 bg-gradient-to-b from-blue-500 to-blue-700 hover:from-blue-400 hover:to-blue-600 text-white font-bold rounded-xl transition-all duration-200 transform hover:-translate-y-0.5 shadow-[0_4px_0_0_#1e40af,0_6px_12px_rgba(0,0,0,0.3)] hover:shadow-[0_2px_0_0_#1e40af,0_4px_8px_rgba(0,0,0,0.3)] active:translate-y-0.5 active:shadow-[0_1px_0_0_#1e40af]"
@@ -2966,11 +2981,11 @@ const PokerTable: React.FC = () => {
 
       {/* Hand Winner Display */}
       {handWinner && !gameWinner && (
-        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-40 pointer-events-none">
-          <div className="bg-black/80 px-8 py-4 rounded-xl border-2 border-yellow-500">
-            <p className="text-2xl font-bold text-yellow-400 text-center">{handWinner}</p>
+        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-40 pointer-events-none px-4 w-full max-w-md">
+          <div className="bg-black/80 px-4 sm:px-8 py-3 sm:py-4 rounded-xl border-2 border-yellow-500">
+            <p className="text-lg sm:text-xl md:text-2xl font-bold text-yellow-400 text-center">{handWinner}</p>
             {fullGameMode && (
-              <p className="text-sm text-gray-300 text-center mt-2">
+              <p className="text-xs sm:text-sm text-gray-300 text-center mt-1.5 sm:mt-2">
                 {isPaused ? '⏸ Paused - Resume to continue' : '⏳ Next hand starting...'}
               </p>
             )}
@@ -2991,17 +3006,17 @@ const PokerTable: React.FC = () => {
 
       {/* Replay Controls */}
       {gameStarted && !gameWinner && (
-        <div className="absolute left-4 top-4 bg-gray-800 p-3 rounded-lg border border-gray-700">
-          <div className="flex flex-col gap-2">
+        <div className="absolute left-2 sm:left-4 top-2 sm:top-4 bg-gray-800 p-2 sm:p-3 rounded-lg border border-gray-700">
+          <div className="flex flex-col gap-1.5 sm:gap-2">
             {fullGameMode && (
-              <div className="mb-2">
-                <div className="text-yellow-400 text-xs font-bold">
+              <div className="mb-1 sm:mb-2">
+                <div className="text-yellow-400 text-[10px] sm:text-xs font-bold">
                   Hand #{handNumber} - Full Game
                 </div>
-                <div className="text-cyan-400 text-xs mt-1">
-                  Blinds: ${smallBlind}/${bigBlind} (Level {blindLevel + 1})
+                <div className="text-cyan-400 text-[10px] sm:text-xs mt-0.5 sm:mt-1">
+                  Blinds: ${smallBlind}/${bigBlind} (Lvl {blindLevel + 1})
                 </div>
-                <div className="text-gray-400 text-[10px]">
+                <div className="text-gray-400 text-[8px] sm:text-[10px] hidden sm:block">
                   Next level in {handsPerLevel - ((handNumber - 1) % handsPerLevel)} hands
                 </div>
               </div>
@@ -3010,39 +3025,40 @@ const PokerTable: React.FC = () => {
               <>
                 <button
                   onClick={() => setIsPaused(!isPaused)}
-                  className={`px-4 py-2 ${isPaused ? 'bg-gradient-to-b from-emerald-500 to-emerald-700 shadow-[0_2px_0_0_#065f46,0_3px_6px_rgba(0,0,0,0.3)] hover:shadow-[0_1px_0_0_#065f46]' : 'bg-gradient-to-b from-amber-500 to-amber-700 shadow-[0_2px_0_0_#92400e,0_3px_6px_rgba(0,0,0,0.3)] hover:shadow-[0_1px_0_0_#92400e]'} text-white text-sm font-bold rounded-lg transition-all duration-200 transform hover:-translate-y-0.5 active:translate-y-0`}
+                  className={`px-2 sm:px-4 py-1.5 sm:py-2 ${isPaused ? 'bg-gradient-to-b from-emerald-500 to-emerald-700 shadow-[0_2px_0_0_#065f46,0_3px_6px_rgba(0,0,0,0.3)] hover:shadow-[0_1px_0_0_#065f46]' : 'bg-gradient-to-b from-amber-500 to-amber-700 shadow-[0_2px_0_0_#92400e,0_3px_6px_rgba(0,0,0,0.3)] hover:shadow-[0_1px_0_0_#92400e]'} text-white text-[10px] sm:text-sm font-bold rounded-lg transition-all duration-200 transform hover:-translate-y-0.5 active:translate-y-0`}
                 >
                   {isPaused ? '▶ Resume' : '⏸ Pause'}
                 </button>
                 <button
                   onClick={() => { setIsPaused(false); startNewGame(true); }}
-                  className="px-4 py-2 bg-gradient-to-b from-red-500 to-red-700 hover:from-red-400 hover:to-red-600 text-white text-sm font-bold rounded-lg transition-all duration-200 transform hover:-translate-y-0.5 shadow-[0_2px_0_0_#991b1b,0_3px_6px_rgba(0,0,0,0.3)] hover:shadow-[0_1px_0_0_#991b1b] active:translate-y-0 active:shadow-[0_0px_0_0_#991b1b]"
+                  className="px-2 sm:px-4 py-1.5 sm:py-2 bg-gradient-to-b from-red-500 to-red-700 hover:from-red-400 hover:to-red-600 text-white text-[10px] sm:text-sm font-bold rounded-lg transition-all duration-200 transform hover:-translate-y-0.5 shadow-[0_2px_0_0_#991b1b,0_3px_6px_rgba(0,0,0,0.3)] hover:shadow-[0_1px_0_0_#991b1b] active:translate-y-0 active:shadow-[0_0px_0_0_#991b1b]"
                 >
-                  Restart Game
+                  Restart
                 </button>
               </>
             ) : (
               <button
                 onClick={() => startNewGame(false)}
-                className="px-4 py-2 bg-gradient-to-b from-emerald-500 to-emerald-700 hover:from-emerald-400 hover:to-emerald-600 text-white text-sm font-bold rounded-lg transition-all duration-200 transform hover:-translate-y-0.5 shadow-[0_2px_0_0_#065f46,0_3px_6px_rgba(0,0,0,0.3)] hover:shadow-[0_1px_0_0_#065f46] active:translate-y-0 active:shadow-[0_0px_0_0_#065f46]"
+                className="px-2 sm:px-4 py-1.5 sm:py-2 bg-gradient-to-b from-emerald-500 to-emerald-700 hover:from-emerald-400 hover:to-emerald-600 text-white text-[10px] sm:text-sm font-bold rounded-lg transition-all duration-200 transform hover:-translate-y-0.5 shadow-[0_2px_0_0_#065f46,0_3px_6px_rgba(0,0,0,0.3)] hover:shadow-[0_1px_0_0_#065f46] active:translate-y-0 active:shadow-[0_0px_0_0_#065f46]"
               >
                 New Hand
               </button>
             )}
             {replayMode && (
-              <label className="flex items-center gap-2 text-white text-sm cursor-pointer">
+              <label className="flex items-center gap-1.5 sm:gap-2 text-white text-[10px] sm:text-sm cursor-pointer">
                 <input
                   type="checkbox"
                   checked={showAllHands}
                   onChange={(e) => setShowAllHands(e.target.checked)}
-                  className="w-4 h-4 accent-green-500"
+                  className="w-3 h-3 sm:w-4 sm:h-4 accent-green-500"
                 />
-                Show All Hands
+                <span className="hidden sm:inline">Show All Hands</span>
+                <span className="sm:hidden">Show All</span>
               </label>
             )}
             <button
                 onClick={() => { setIsPaused(false); setGameStarted(false); setGameWinner(null); }}
-                className="px-4 py-2 bg-gradient-to-b from-gray-500 to-gray-700 hover:from-gray-400 hover:to-gray-600 text-white text-xs rounded-lg transition-all duration-200 transform hover:-translate-y-0.5 shadow-[0_2px_0_0_#374151,0_3px_6px_rgba(0,0,0,0.3)] hover:shadow-[0_1px_0_0_#374151] active:translate-y-0 active:shadow-[0_0px_0_0_#374151]"
+                className="px-2 sm:px-4 py-1 sm:py-2 bg-gradient-to-b from-gray-500 to-gray-700 hover:from-gray-400 hover:to-gray-600 text-white text-[10px] sm:text-xs rounded-lg transition-all duration-200 transform hover:-translate-y-0.5 shadow-[0_2px_0_0_#374151,0_3px_6px_rgba(0,0,0,0.3)] hover:shadow-[0_1px_0_0_#374151] active:translate-y-0 active:shadow-[0_0px_0_0_#374151]"
               >
                 Exit
               </button>
@@ -3051,23 +3067,23 @@ const PokerTable: React.FC = () => {
       )}
 
       {/* Table Container */}
-      <div className="relative w-full max-w-4xl aspect-[2/1] bg-green-800 rounded-[180px] border-[14px] border-green-900 shadow-2xl flex items-center justify-center">
-        <div className="absolute inset-0 rounded-[166px] border border-green-700 opacity-50 pointer-events-none"></div>
+      <div className="relative w-full max-w-[95vw] sm:max-w-2xl md:max-w-3xl lg:max-w-4xl aspect-[2/1] bg-green-800 rounded-[80px] sm:rounded-[120px] md:rounded-[150px] lg:rounded-[180px] border-[8px] sm:border-[10px] md:border-[12px] lg:border-[14px] border-green-900 shadow-2xl flex items-center justify-center">
+        <div className="absolute inset-0 rounded-[72px] sm:rounded-[110px] md:rounded-[138px] lg:rounded-[166px] border border-green-700 opacity-50 pointer-events-none"></div>
 
         {/* Center Area - lower z-index so player cards appear above */}
-        <div className="flex flex-col items-center gap-3 z-0">
+        <div className="flex flex-col items-center gap-1 sm:gap-2 md:gap-3 z-0">
           {/* Street Indicator */}
-          <div className="text-yellow-500 text-lg font-bold uppercase tracking-wider">
+          <div className="text-yellow-500 text-sm sm:text-base md:text-lg font-bold uppercase tracking-wider">
             {gameState.street}
           </div>
 
           {/* Community Cards */}
-          <div className="flex gap-2">
+          <div className="flex gap-1 sm:gap-2">
             {gameState.communityCards.map((card, idx) => (
               <PlayingCard key={idx} card={card} />
             ))}
             {[...Array(5 - gameState.communityCards.length)].map((_, i) => (
-              <div key={i} className="w-10 h-14 sm:w-12 sm:h-16 border-2 border-green-600/50 rounded-lg bg-green-900/20" />
+              <div key={i} className="w-8 h-11 sm:w-10 sm:h-14 md:w-12 md:h-16 border-2 border-green-600/50 rounded-lg bg-green-900/20" />
             ))}
           </div>
         </div>
