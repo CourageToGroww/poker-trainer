@@ -2694,6 +2694,17 @@ const PokerTable: React.FC = () => {
     if (!gameStarted || replayMode) return; // Don't process if already in replay mode
     const activePlayers = players.filter(p => !p.isFolded);
 
+    // Check if all remaining players are all-in (runout scenario)
+    const allPlayersAllIn = activePlayers.length > 1 &&
+      activePlayers.filter(p => p.chips > 0).length <= 1 &&
+      gameState.street !== 'showdown';
+
+    // If everyone is all-in and we're not at showdown, fast-track to showdown
+    if (allPlayersAllIn) {
+      setTimeout(() => advanceStreet(), 150);
+      return;
+    }
+
     if (activePlayers.length <= 1) {
       // Hand is over - winner by fold
       if (activePlayers.length === 1 && gameState.pot > 0 && !potAwardedRef.current) {
@@ -2834,7 +2845,13 @@ const PokerTable: React.FC = () => {
     const noOneActive = !players.some(p => p.isActive);
 
     if (roundComplete && noOneActive) {
-      setTimeout(() => advanceStreet(), 400);
+      // Check if this is an "all-in runout" scenario (no players with chips can act)
+      const playersWithChips = activePlayers.filter(p => p.chips > 0);
+      const isAllInRunout = playersWithChips.length <= 1;
+
+      // Use faster timing for all-in runouts so the board runs out smoothly
+      const delay = isAllInRunout ? 150 : 400;
+      setTimeout(() => advanceStreet(), delay);
     }
 
     // Failsafe: If no one is active but game should continue, find next player
