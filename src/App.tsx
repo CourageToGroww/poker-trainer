@@ -2433,7 +2433,7 @@ const PokerTable: React.FC = () => {
         nextPos = (nextPos + 1) % newPlayers.length;
         attempts++;
       }
-      if (attempts < 7 && newPlayers[nextPos].chips > 0 && !newPlayers[nextPos].isFolded) {
+      if (attempts < 7 && newPlayers[nextPos].chips > 0 && !newPlayers[nextPos].isFolded && !newPlayers[nextPos].hasActed) {
         newPlayers[nextPos].isActive = true;
       }
       return newPlayers;
@@ -2487,6 +2487,7 @@ const PokerTable: React.FC = () => {
             return newPlayers;
           });
         }
+        aiProcessingRef.current = false; // Reset ref before returning
         return;
       }
 
@@ -2855,6 +2856,18 @@ const PokerTable: React.FC = () => {
           }
           nextPos = (nextPos + 1) % players.length;
           attempts++;
+        }
+      } else {
+        // Edge case: No one can act but round marked incomplete
+        // This can happen due to state inconsistency - force advance street
+        // Check if all players with chips have actually matched the bet or are all-in
+        const playersWithChips = activePlayers.filter(p => p.chips > 0);
+        const allMatched = playersWithChips.every(p => 
+          p.currentBet === gameState.currentBet || p.hasActed
+        );
+        if (allMatched || playersWithChips.length <= 1) {
+          // Safe to advance street
+          setTimeout(() => advanceStreet(), 100);
         }
       }
     }
